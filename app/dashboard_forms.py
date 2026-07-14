@@ -13,26 +13,13 @@ from flask_wtf.file import FileField, FileAllowed
 
 
 def get_degree_type_choices():
-    candidates = [
-        ("degree_types", "degree_type"),
-        ("degree_types", "name"),
-        ("degree_types", "type"),
-        ("degree_types", "degree"),
-        ("alumni_geneva_educations", "degree_level"),
-        ("alumni_geneva_educations", "degree"),
-    ]
-
-    for table_name, column_name in candidates:
-        try:
-            query = db.text(f"SELECT DISTINCT {column_name} FROM {table_name}")
-            rows = db.session.execute(query).fetchall()
-            choices = [(row[0], row[0]) for row in rows if row and row[0]]
-            if choices:
-                return choices
-        except Exception:
-            continue
-
-    return []
+    try:
+        query = db.text("SELECT DISTINCT degree_level FROM alumni_geneva_educations")
+        rows = db.session.execute(query).fetchall()
+        choices = [(row[0], row[0]) for row in rows if row and row[0]]
+        return choices
+    except Exception:
+        return []
 
 
 class EditFullEntryForm(FlaskForm):

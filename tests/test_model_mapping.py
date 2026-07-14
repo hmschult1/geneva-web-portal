@@ -85,27 +85,25 @@ def test_class_note_modal_payload_maps_submission_fields():
     assert payload["image_filename"] == "photo.jpg"
 
 
-def test_degree_type_choices_are_loaded_from_db(monkeypatch):
+def test_degree_type_choices_are_loaded_from_geneva_education_column(monkeypatch):
     class FakeQueryResult:
         def __init__(self, values):
             self._values = values
 
-        def filter(self, *args, **kwargs):
-            return self
-
-        def distinct(self):
-            return self
-
-        def all(self):
+        def fetchall(self):
             return [(value,) for value in self._values]
 
     class FakeSession:
-        def query(self, *args, **kwargs):
-            return FakeQueryResult(["Undergrad", "Graduate"])
+        def execute(self, *args, **kwargs):
+            return FakeQueryResult(["undegraduate", "graduate", "online degree", "Other"])
 
     monkeypatch.setattr("app.dashboard_forms.db.session", FakeSession())
 
-    assert get_degree_type_choices() == [("Undergrad", "Undergrad"), ("Graduate", "Graduate")]
+    assert get_degree_type_choices() == [
+        ("undegraduate", "undegraduate"),
+        ("graduate", "graduate"),
+        ("online degree", "online degree"),
+    ]
 
 
 def test_class_note_apply_edit_form_updates_related_models():

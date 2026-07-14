@@ -110,7 +110,6 @@ class AlumniGenevaEducation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     alumnus_id = db.Column(db.Integer, db.ForeignKey("alumni.id"), nullable=False)
     degree_level = db.Column(db.String(50))
-    degree = db.Column(db.String(150))
     graduation_year = db.Column(db.String(4))
 
     alumnus = db.relationship("Alumni", back_populates="geneva_educations")

@@ -66,6 +66,14 @@
             {{ form.nameplate(id="nameplate", class="form-control", placeholder="Add nameplate") }}
           </div>
           <div class="mb-3">
+            <strong>{{ form.grad_year.label }}</strong>
+            {{ form.grad_year(id="grad_year", class="form-control") }}
+          </div>
+          <div class="mb-3">
+            <strong>{{ form.grad_degree_type.label }}</strong>
+            {{ form.grad_degree_type(id="grad_degree_type", class="form-select") }}
+          </div>
+          <div class="mb-3">
             <strong>{{ form.class_note_text.label }}</strong>
             {{ form.class_note_text(id="class_note_text", class="form-control") }}
           </div>
@@ -98,6 +106,8 @@
         document.getElementById('first_name').value = payload.first_name || '';
         document.getElementById('last_name').value = payload.last_name || '';
         document.getElementById('nameplate').value = payload.nameplate || '';
+        document.getElementById('grad_year').value = payload.grad_year || '';
+        document.getElementById('grad_degree_type').value = payload.grad_degree_type || '';
         document.getElementById('class_note_text').value = payload.class_note_text || '';
         document.getElementById('existing_image').value = payload.existing_image || '';
         document.getElementById('note_id').value = payload.id || '';

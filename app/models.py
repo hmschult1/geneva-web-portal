@@ -210,6 +210,20 @@ class AlumniClassNote(db.Model):
         alumnus.maiden_name = form.maiden_name.data or ""
         alumnus.email = form.email.data or ""
         alumnus.phone = form.phone.data or ""
+        alumnus.phone_type = form.phone_type.data or None
+
+        if alumnus.geneva_educations:
+            education = alumnus.geneva_educations[0]
+            education.degree_level = form.grad_degree_type.data or ""
+            education.graduation_year = form.grad_year.data or ""
+        else:
+            alumnus.geneva_educations.append(
+                AlumniGenevaEducation(
+                    alumnus_id=alumnus.id,
+                    degree_level=form.grad_degree_type.data or "",
+                    graduation_year=form.grad_year.data or "",
+                )
+            )
 
         address = alumnus.addresses[0] if alumnus.addresses else None
         if address is None:
@@ -230,6 +244,9 @@ class AlumniClassNote(db.Model):
 
         family_update.marital_status = form.marital_status.data or ""
         family_update.spouse_name = form.spouse_name.data or ""
+        family_update.spouse_undergrad_year = form.spouse_grad_year.data or "" if form.spouse_degree_type.data == "Undegraduate" else family_update.spouse_undergrad_year
+        family_update.spouse_graduate_year = form.spouse_grad_year.data or "" if form.spouse_degree_type.data == "Graduate" else family_update.spouse_graduate_year
+        family_update.spouse_online_year = form.spouse_grad_year.data or "" if form.spouse_degree_type.data == "Online Degree" else family_update.spouse_online_year
         family_update.marry_date = form.marry_date.data
 
         employment_update = update.employment_updates[0] if update.employment_updates else None
@@ -246,6 +263,7 @@ class AlumniClassNote(db.Model):
             update.education_updates.append(education_update)
 
         education_update.institution = form.institution.data or ""
+        education_update.graduation_year = form.education_grad_year.data or ""
 
         child = update.children[0] if update.children else None
         if child is None:
@@ -283,6 +301,13 @@ class AlumniClassNote(db.Model):
             "maiden_name": alumnus.maiden_name if alumnus else "",
             "email": alumnus.email if alumnus else "",
             "phone": alumnus.phone if alumnus else "",
+            "phone_type": alumnus.phone_type.value if alumnus and alumnus.phone_type else "",
+            "grad_year": (
+                alumnus.geneva_educations[0].graduation_year if alumnus and alumnus.geneva_educations else ""
+            ),
+            "grad_degree_type": (
+                alumnus.geneva_educations[0].degree_level if alumnus and alumnus.geneva_educations else ""
+            ),
             "address_line1": address.address_line1 if address else "",
             "address_line2": address.address_line2 if address else "",
             "city": address.city if address else "",
@@ -291,10 +316,21 @@ class AlumniClassNote(db.Model):
             "country": address.country if address else "",
             "marital_status": family_update.marital_status if family_update else "",
             "spouse_name": family_update.spouse_name if family_update else "",
+            "spouse_grad_year": family_update.spouse_graduate_year if family_update else "",
+            "spouse_degree_type": (
+                "Undegraduate"
+                if family_update and family_update.spouse_undergrad_year
+                else "Graduate"
+                if family_update and family_update.spouse_graduate_year
+                else "Online Degree"
+                if family_update and family_update.spouse_online_year
+                else ""
+            ),
             "marry_date": family_update.marry_date.strftime("%Y-%m-%d") if family_update and family_update.marry_date else "",
             "employer": employment_update.employer if employment_update else "",
             "position": employment_update.position if employment_update else "",
             "institution": education_update.institution if education_update else "",
+            "education_grad_year": education_update.graduation_year if education_update else "",
             "additional_updates": update.additional_updates if update else "",
             "volunteer_choices": update.volunteer_choices or [],
             "other_volunteer": update.other_volunteer if update else "",

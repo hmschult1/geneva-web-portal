@@ -1,6 +1,7 @@
 import datetime
 from types import SimpleNamespace
 
+from app.dashboard_forms import get_degree_type_choices
 from app.models import (
     Alumni,
     AlumniAddress,
@@ -18,6 +19,7 @@ def test_class_note_modal_payload_maps_submission_fields():
         first_name="Jane",
         last_name="Doe",
         maiden_name="Smith",
+        pref_salutation="Dr.",
         email="jane@example.com",
         phone="555-1234",
     )
@@ -73,6 +75,7 @@ def test_class_note_modal_payload_maps_submission_fields():
     assert payload["first_name"] == "Jane"
     assert payload["last_name"] == "Doe"
     assert payload["email"] == "jane@example.com"
+    assert payload["phone"] == "555-1234"
     assert payload["address_line1"] == "1 Main St"
     assert payload["marital_status"] == "Married"
     assert payload["employer"] == "Geneva College"
@@ -80,6 +83,29 @@ def test_class_note_modal_payload_maps_submission_fields():
     assert payload["volunteer_choices"] == ["Speak to current students"]
     assert payload["class_note_text"] == "A wonderful update"
     assert payload["image_filename"] == "photo.jpg"
+
+
+def test_degree_type_choices_are_loaded_from_db(monkeypatch):
+    class FakeQueryResult:
+        def __init__(self, values):
+            self._values = values
+
+        def filter(self, *args, **kwargs):
+            return self
+
+        def distinct(self):
+            return self
+
+        def all(self):
+            return [(value,) for value in self._values]
+
+    class FakeSession:
+        def query(self, *args, **kwargs):
+            return FakeQueryResult(["Undergrad", "Graduate"])
+
+    monkeypatch.setattr("app.dashboard_forms.db.session", FakeSession())
+
+    assert get_degree_type_choices() == [("Undergrad", "Undergrad"), ("Graduate", "Graduate")]
 
 
 def test_class_note_apply_edit_form_updates_related_models():

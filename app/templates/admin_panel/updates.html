@@ -72,6 +72,18 @@
             {{ form.phone(id="phone", class="form-control") }}
           </div>
           <div class="mb-3">
+            <strong>{{ form.phone_type.label }}</strong>
+            {{ form.phone_type(id="phone_type", class="form-select") }}
+          </div>
+          <div class="mb-3">
+            <strong>{{ form.grad_year.label }}</strong>
+            {{ form.grad_year(id="grad_year", class="form-control") }}
+          </div>
+          <div class="mb-3">
+            <strong>{{ form.grad_degree_type.label }}</strong>
+            {{ form.grad_degree_type(id="grad_degree_type", class="form-select") }}
+          </div>
+          <div class="mb-3">
             <strong>{{ form.address_line1.label }}</strong>
             {{ form.address_line1(id="address_line1", class="form-control") }}
           </div>
@@ -104,6 +116,14 @@
             {{ form.spouse_name(id="spouse_name", class="form-control") }}
           </div>
           <div class="mb-3">
+            <strong>{{ form.spouse_grad_year.label }}</strong>
+            {{ form.spouse_grad_year(id="spouse_grad_year", class="form-control") }}
+          </div>
+          <div class="mb-3">
+            <strong>{{ form.spouse_degree_type.label }}</strong>
+            {{ form.spouse_degree_type(id="spouse_degree_type", class="form-select") }}
+          </div>
+          <div class="mb-3">
             <strong>{{ form.marry_date.label }}</strong>
             {{ form.marry_date(id="marry_date", class="form-control") }}
           </div>
@@ -132,8 +152,20 @@
             {{ form.position(id="position", class="form-control") }}
           </div>
           <div class="mb-3">
-            <strong>{{ form.institution.label }}</strong>
-            {{ form.institution(id="institution", class="form-control") }}
+            <strong>{{ form.start_date.label }}</strong>
+            {{ form.start_date(id="start_date", class="form-control") }}
+          </div>
+          <div class="mb-3">
+            <strong>{{ form.additional_institution.label }}</strong>
+            {{ form.additional_institution(id="additional_institution", class="form-control") }}
+          </div>
+          <div class="mb-3">
+            <strong>{{ form.additional_degree.label }}</strong>
+            {{ form.additional_degree(id="additional_degree", class="form-control") }}
+          </div>
+          <div class="mb-3">
+            <strong>{{ form.education_grad_year.label }}</strong>
+            {{ form.education_grad_year(id="education_grad_year", class="form-control") }}
           </div>
           <div class="mb-3">
             <strong>{{ form.additional_updates.label }}</strong>
@@ -170,6 +202,9 @@
           maiden_name: 'maiden_name',
           email: 'email',
           phone: 'phone',
+          phone_type: 'phone_type',
+          grad_year: 'grad_year',
+          grad_degree_type: 'grad_degree_type',
           address_line1: 'address_line1',
           address_line2: 'address_line2',
           city: 'city',
@@ -178,10 +213,15 @@
           country: 'country',
           marital_status: 'marital_status',
           spouse_name: 'spouse_name',
+          spouse_grad_year: 'spouse_grad_year',
+          spouse_degree_type: 'spouse_degree_type',
           marry_date: 'marry_date',
           employer: 'employer',
           position: 'position',
-          institution: 'institution',
+          start_date: 'start_date',
+          additional_institution: 'additional_institution',
+          additional_degree: 'additional_degree',
+          education_grad_year: 'education_grad_year',
           additional_updates: 'additional_updates',
           other_volunteer: 'other_volunteer',
           id: 'note_id'

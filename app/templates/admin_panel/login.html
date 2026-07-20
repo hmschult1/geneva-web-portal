@@ -1,0 +1,40 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Login | Geneva App Portal{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+
+        <h2 class="section-title">Login</h2>
+
+        <form method="POST">
+            {{ form.hidden_tag() }}
+
+            <div class="field">
+                {{ form.email.label(class="form-label") }}
+                {{ form.email(class="form-control") }}
+
+                {% for error in form.email.errors %}
+                    <div class="field-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="field" style="margin-top: 18px;">
+                {{ form.password.label(class="form-label") }}
+                {{ form.password(class="form-control") }}
+
+                {% for error in form.password.errors %}
+                    <div class="field-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="login-actions" style="margin-top: 18px;">
+                {{ form.submit(class="btn primary") }}
+            </div>
+
+        </form>
+
+    </div>
+</div>
+{% endblock %}

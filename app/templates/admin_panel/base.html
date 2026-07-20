@@ -146,23 +146,16 @@
   </header>
 
   <main class="content">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div
-          class="flash-messages"
-          aria-live="polite"
-          aria-atomic="true"
-        >
-          {% for category, message in messages %}
-            <div
-              class="flash-message {{ category }}"
-              role="alert"
-            >
-              {{ message }}
+     {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
             </div>
-          {% endfor %}
-        </div>
-      {% endif %}
+        {% endif %}
     {% endwith %}
 
     {% block content %}{% endblock %}

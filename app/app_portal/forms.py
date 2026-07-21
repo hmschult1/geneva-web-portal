@@ -27,10 +27,10 @@ class EditFullEntryForm(FlaskForm):
     first_name = StringField('First Name', validators=[DataRequired()])
     last_name = StringField('Last Name', validators=[DataRequired()])
     maiden_name = StringField('Maiden Name', validators=[Optional()])
-    email = StringField('Email Address', validators=[DataRequired(), Email()])
+    email = StringField('Email Address', validators=[Optional(), Email()])
     phone = TelField('Phone Number', validators=[Optional()])
     phone_type = SelectField('Phone Type', choices=[('mobile', 'Mobile'), ('home', 'Home')], validators=[Optional()])
-    grad_year = StringField('Geneva Grad Year', validators=[Optional()])
+    grad_year = StringField('Geneva Grad Year', validators=[DataRequired()])
     grad_degree_type = SelectField('Geneva Degree Type', choices=get_degree_type_choices, validators=[Optional()])
 
     # Address
@@ -44,11 +44,11 @@ class EditFullEntryForm(FlaskForm):
     # Family
     marital_status = StringField('Marital Status', validators=[Optional()])
     spouse_name = StringField("Spouse's Name", validators=[Optional()])
-    spouse_grad_year = StringField('Spouse GenevaGrad Year', validators=[Optional()])
+    spouse_grad_year = StringField('Spouse Geneva Grad Year', validators=[Optional()])
     spouse_degree_type = SelectField('Spouse Geneva Degree Type', choices=get_degree_type_choices, validators=[Optional()])
     marry_date = DateField('Marriage Date', validators=[Optional()])
 
-    # Child
+    # Children
     child_first_name = StringField('Child First Name', validators=[Optional()])
     child_last_name = StringField('Child Last Name', validators=[Optional()])
     child_gender = StringField('Child Gender', validators=[Optional()])

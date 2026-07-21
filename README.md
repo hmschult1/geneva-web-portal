@@ -1,9 +1,5 @@
 ﻿# Geneva App Portal
 
-Geneva App Portal is an internal administrative application developed for Geneva College Marketing. It provides authenticated staff with a secure interface for reviewing, editing, and managing alumni record updates and class note submissions received through the College's public alumni update form.
-
-# Geneva App Portal
-
 A secure, staff-facing Flask application for reviewing and managing Geneva College alumni submissions.
 
 The portal connects to separate MySQL databases for alumni records and staff authentication. Authorized staff can sign in, review submitted alumni updates and class notes, edit records, and manage their account password.

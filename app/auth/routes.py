@@ -16,7 +16,7 @@ from flask_login import (
 )
 
 from app.auth import auth_bp
-from app.auth.forms import LoginForm
+from app.auth.forms import ChangePasswordForm, LoginForm
 from app.auth.models import User
 from app.extensions import db
 
@@ -99,3 +99,53 @@ def session_timeout():
         "warning",
     )
     return redirect(url_for("auth.login"))
+
+@auth_bp.route("/accounts", methods=["GET", "POST"])
+@login_required
+def accounts():
+    form = ChangePasswordForm()
+
+    if form.validate_on_submit():
+        if not current_user.check_password(
+            form.current_password.data
+        ):
+            flash(
+                "Your current password is incorrect.",
+                "danger",
+            )
+            return render_template(
+                "auth/accounts.html",
+                form=form,
+            )
+
+        if current_user.check_password(
+            form.new_password.data
+        ):
+            flash(
+                "Your new password must be different from your current password.",
+                "danger",
+            )
+            return render_template(
+                "auth/accounts.html",
+                form=form,
+            )
+
+        current_user.set_password(
+            form.new_password.data
+        )
+
+        db.session.commit()
+
+        flash(
+            "Your password was changed successfully.",
+            "success",
+        )
+
+        return redirect(
+            url_for("auth.accounts")
+        )
+
+    return render_template(
+        "auth/accounts.html",
+        form=form,
+    )

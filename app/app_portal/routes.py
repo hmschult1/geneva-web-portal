@@ -26,37 +26,6 @@ def landing():
         updates=updates
     )
 
-
-@app_portal_bp.route("/accounts", methods=["GET", "POST"])
-@login_required
-def accounts():
-    form = ChangePasswordForm()
-
-    if form.validate_on_submit():
-        if not check_password_hash(
-            current_user.password,
-            form.current_password.data
-        ):
-            flash("Incorrect current password.", "danger")
-        else:
-            current_user.password = generate_password_hash(
-                form.new_password.data
-            )
-
-            db.session.commit()
-
-            flash(
-                "Your password has been updated successfully.",
-                "success"
-            )
-
-            return redirect(url_for("auth.accounts"))
-
-    return render_template(
-        "auth/accounts.html",
-        form=form
-    )
-
 # ALUMNI UPDATE ROUTES
 @app_portal_bp.route("/updates")
 @login_required

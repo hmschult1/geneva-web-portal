@@ -60,9 +60,9 @@
 
             <li class="nav-item">
               <a class="nav-link portal-nav-link
-                {% if request.endpoint == 'app_portal.accounts' %}
+                {% if request.endpoint == 'auth.accounts' %}
                   active
-                {% endif %}" href="{{ url_for('app_portal.accounts') }}" {% if request.endpoint=='app_portal.accounts'
+                {% endif %}" href="{{ url_for('auth.accounts') }}" {% if request.endpoint=='auth.accounts'
                 %} aria-current="page" {% endif %}>
                 <img src="{{ url_for('static', filename='_assets/account-icon.png') }}" alt="" aria-hidden="true"
                   class="portal-nav-icon" />

@@ -1,4 +1,4 @@
-{% extends "admin_panel/base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Login | Geneva App Portal{% endblock %}
 
@@ -12,10 +12,10 @@
             {{ form.hidden_tag() }}
 
             <div class="field">
-                {{ form.email.label(class="form-label") }}
-                {{ form.email(class="form-control") }}
+                {{ form.username.label(class="form-label") }}
+                {{ form.username(class="form-control") }}
 
-                {% for error in form.email.errors %}
+                {% for error in form.username.errors %}
                     <div class="field-error">{{ error }}</div>
                 {% endfor %}
             </div>

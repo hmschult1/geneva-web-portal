@@ -42,7 +42,7 @@ def is_safe_redirect_url(target):
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for("dashboard.dashboard_home"))
+        return redirect(url_for("app_portal.landing"))
 
     form = LoginForm()
 
@@ -76,7 +76,7 @@ def login():
         if next_page and is_safe_redirect_url(next_page):
             return redirect(next_page)
 
-        return redirect(url_for("dashboard.dashboard_home"))
+        return redirect(url_for("app_portal.landing"))
 
     return render_template(
         "auth/login.html",

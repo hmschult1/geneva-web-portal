@@ -46,7 +46,7 @@
         <!-- Brand -->
         <a
           class="navbar-brand portal-brand"
-          href="{{ url_for('dashboard.dashboard_home') }}"
+          href="{{ url_for('app_portal.landing') }}"
         >
           <img
             src="{{ url_for('static', filename='_assets/logo-wbg.png') }}"
@@ -82,11 +82,11 @@
             <li class="nav-item">
               <a
                 class="nav-link portal-nav-link
-                {% if request.endpoint == 'dashboard.dashboard_home' %}
+                {% if request.endpoint == 'app_portal.landing' %}
                   active
                 {% endif %}"
-                href="{{ url_for('dashboard.dashboard_home') }}"
-                {% if request.endpoint == 'dashboard.dashboard_home' %}
+                href="{{ url_for('app_portal.landing') }}"
+                {% if request.endpoint == 'app_portal.landing' %}
                   aria-current="page"
                 {% endif %}
               >
@@ -104,11 +104,11 @@
             <li class="nav-item">
               <a
                 class="nav-link portal-nav-link
-                {% if request.endpoint == 'dashboard.dashboard_accounts' %}
+                {% if request.endpoint == 'app_portal.accounts' %}
                   active
                 {% endif %}"
-                href="{{ url_for('dashboard.dashboard_accounts') }}"
-                {% if request.endpoint == 'dashboard.dashboard_accounts' %}
+                href="{{ url_for('app_portal.accounts') }}"
+                {% if request.endpoint == 'app_portal.accounts' %}
                   aria-current="page"
                 {% endif %}
               >

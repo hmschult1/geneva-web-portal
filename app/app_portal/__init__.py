@@ -1,9 +1,9 @@
 from flask import Blueprint
 
-auth_bp = Blueprint(
-    "auth",
+app_portal_bp = Blueprint(
+    "app_portal",
     __name__,
     template_folder="templates"
 )
 
-from app.auth import routes
+from app.app_portal import routes

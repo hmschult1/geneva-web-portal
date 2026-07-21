@@ -41,10 +41,10 @@ def create_app(config_class=Config):
 
     # Register blueprints
     from app.auth.routes import auth_bp
-    from app.app_portal.routes import dashboard_bp
+    from app.app_portal.routes import app_portal_bp
 
     app.register_blueprint(auth_bp)
-    app.register_blueprint(dashboard_bp)
+    app.register_blueprint(app_portal_bp)
 
     # Register manual user-management commands
     from app.commands import (

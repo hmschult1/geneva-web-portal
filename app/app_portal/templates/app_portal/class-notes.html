@@ -1,4 +1,4 @@
-{% extends "admin_panel/base.html" %}
+{% extends "base.html" %}
 {% block title %}Class Note Entries · Geneva App Portal{% endblock %}
 
 {% block content %}
@@ -112,7 +112,7 @@
         document.getElementById('class_note_text').value = payload.class_note_text || '';
         document.getElementById('existing_image').value = payload.existing_image || '';
         document.getElementById('note_id').value = payload.id || '';
-        document.getElementById('editForm').action = `/dashboard/class-notes/${payload.id}/edit`;
+        document.getElementById('editForm').action = `/app_portal/class-notes/${payload.id}/edit`;
 
         const imageFilename = payload.image_filename || '';
         const previewWrapper = document.getElementById('image_preview_wrapper');

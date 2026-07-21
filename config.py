@@ -43,9 +43,8 @@ class Config:
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
     
-    #I NACTIVITY TIMER
+    # INACTIVITY TIMER
     PERMANENT_SESSION_LIFETIME = timedelta(hours=.5)
-    SESSION_REFRESH_EACH_REQUEST = True
 
     # Set this to True in production when the app uses HTTPS.
     SESSION_COOKIE_SECURE = False

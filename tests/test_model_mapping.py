@@ -1,7 +1,7 @@
 import datetime
 from types import SimpleNamespace
 
-from app.dashboard_forms import get_degree_type_choices
+from app.app_portal.forms import get_degree_type_choices
 from app.models import (
     Alumni,
     AlumniAddress,

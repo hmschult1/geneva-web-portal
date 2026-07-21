@@ -2,8 +2,8 @@ from flask import Blueprint, render_template, flash, redirect, url_for
 from flask_login import login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from app.auth_forms import ChangePasswordForm
-from app.dashboard_forms import EditFullEntryForm
+from app.auth.forms import ChangePasswordForm
+from app.app_portal.forms import EditFullEntryForm
 from app.models import AlumniClassNote, AlumniUpdate
 from app import db
 from sqlalchemy.orm import selectinload

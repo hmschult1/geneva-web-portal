@@ -1,4 +1,4 @@
-from app.auth_models import User
+from app.auth.models import User
 
 
 def test_staff_user_uses_non_reserved_table_name():

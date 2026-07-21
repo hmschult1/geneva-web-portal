@@ -14,6 +14,7 @@ class PhoneType(enum.Enum):
 
 
 class Alumni(db.Model):
+    __bind_key__ = "alumni"
     __tablename__ = "alumni"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -43,6 +44,7 @@ class Alumni(db.Model):
 
 
 class AlumniUpdate(db.Model):
+    __bind_key__ = "alumni"
     __tablename__ = "alumni_updates"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -144,6 +146,7 @@ class AlumniUpdate(db.Model):
         }
 
 class AlumniAddress(db.Model):
+    __bind_key__ = "alumni"
     __tablename__ = "alumni_addresses"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -159,6 +162,7 @@ class AlumniAddress(db.Model):
 
 
 class AlumniGenevaEducation(db.Model):
+    __bind_key__ = "alumni"
     __tablename__ = "alumni_geneva_educations"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -170,6 +174,7 @@ class AlumniGenevaEducation(db.Model):
 
 
 class AlumniFamilyUpdate(db.Model):
+    __bind_key__ = "alumni"
     __tablename__ = "alumni_family_updates"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -192,6 +197,7 @@ class AlumniFamilyUpdate(db.Model):
 
 
 class AlumniChild(db.Model):
+    __bind_key__ = "alumni"
     __tablename__ = "alumni_children"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -208,6 +214,7 @@ class AlumniChild(db.Model):
 
 
 class AlumniEmploymentUpdate(db.Model):
+    __bind_key__ = "alumni"
     __tablename__ = "alumni_employment_updates"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -220,6 +227,7 @@ class AlumniEmploymentUpdate(db.Model):
 
 
 class AlumniEducationUpdate(db.Model):
+    __bind_key__ = "alumni"
     __tablename__ = "alumni_education_updates"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -232,6 +240,7 @@ class AlumniEducationUpdate(db.Model):
 
 
 class AlumniClassNote(db.Model):
+    __bind_key__ = "alumni"
     __tablename__ = "alumni_class_notes"
 
     id = db.Column(db.Integer, primary_key=True)

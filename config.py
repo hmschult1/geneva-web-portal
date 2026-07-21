@@ -4,16 +4,24 @@ from urllib.parse import quote_plus
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key")
 
-    MYSQL_HOST = os.environ.get("MYSQL_HOST")
-    MYSQL_PORT = os.environ.get("MYSQL_PORT", "3306")
-    MYSQL_DATABASE = os.environ.get("MYSQL_DATABASE")
-    MYSQL_USER = quote_plus(os.environ.get("MYSQL_USER", ""))
-    MYSQL_PASSWORD = quote_plus(os.environ.get("MYSQL_PASSWORD", ""))
-
-    SQLALCHEMY_DATABASE_URI = (
-        f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}"
-        f"@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}"
+    DB_HOST = os.environ["DB_HOST"]
+    DB_USER = os.environ["DB_USER"]
+    DB_PASSWORD = quote_plus(os.environ["DB_PASSWORD"])
+    ALUMNI_DB = os.environ["ALUMNI_DB_NAME"]
+    AUTH_DB = os.environ["AUTH_DB_NAME"]
+    
+    ALUMNI_DATABASE_URI = (
+        f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{ALUMNI_DB}"
     )
+    
+    AUTH_DB_URI = (
+        f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{AUTH_DB}"
+    )
+    
+    SQLALCHEMY_BINDS = {
+        "auth": AUTH_DB_URI,
+        "alumni": ALUMNI_DATABASE_URI,
+    }
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
@@ -26,3 +34,10 @@ class Config:
             }
         }
     }
+    
+    # Session security
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Lax"
+
+    # Set this to True in production when the app uses HTTPS.
+    SESSION_COOKIE_SECURE = False

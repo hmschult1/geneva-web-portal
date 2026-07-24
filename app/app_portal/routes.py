@@ -138,9 +138,14 @@ def edit_class_note(edit_id):
 
     if not form.validate_on_submit():
         current_app.logger.error(
-            "Alumni update validation errors for update %s: %s",
+            "Class note validation errors for note %s: %s",
             edit_id,
             form.errors,
+        )
+
+        current_app.logger.error(
+            "Submitted class note form data: %s",
+            request.form.to_dict(flat=False),
         )
 
         flash(
@@ -148,13 +153,88 @@ def edit_class_note(edit_id):
             "danger",
         )
 
-        return redirect(url_for("app_portal.class_notes"))
+        return redirect(
+            url_for("app_portal.class_notes")
+        )
 
     try:
+        alumnus = note.alumni_update.alumnus
+
+        current_app.logger.info(
+            (
+                "Submitted Geneva education values for class note %s: "
+                "degrees=%r, undergrad=%r, graduate=%r, online=%r"
+            ),
+            edit_id,
+            form.geneva_degrees.data,
+            form.undergrad_year.data,
+            form.graduate_year.data,
+            form.online_year.data,
+        )
+
+        current_app.logger.info(
+            "Education records before edit: %r",
+            [
+                {
+                    "id": education.id,
+                    "alumnus_id": education.alumnus_id,
+                    "degree_level": education.degree_level,
+                    "graduation_year": education.graduation_year,
+                }
+                for education in alumnus.geneva_educations
+            ],
+        )
+
         note.apply_class_note_edit(form)
+
+        current_app.logger.info(
+            "Education records after model edit: %r",
+            [
+                {
+                    "id": education.id,
+                    "alumnus_id": education.alumnus_id,
+                    "degree_level": education.degree_level,
+                    "graduation_year": education.graduation_year,
+                }
+                for education in alumnus.geneva_educations
+            ],
+        )
+
+        current_app.logger.info(
+            "Dirty objects before flush: %r",
+            list(db.session.dirty),
+        )
+
+        current_app.logger.info(
+            "New objects before flush: %r",
+            list(db.session.new),
+        )
+
+        current_app.logger.info(
+            "Deleted objects before flush: %r",
+            list(db.session.deleted),
+        )
+
+        db.session.flush()
+
+        current_app.logger.info(
+            "Education records after flush: %r",
+            [
+                {
+                    "id": education.id,
+                    "degree_level": education.degree_level,
+                    "graduation_year": education.graduation_year,
+                }
+                for education in alumnus.geneva_educations
+            ],
+        )
+
         db.session.commit()
 
-        flash("Entry updated successfully.", "success")
+        flash(
+            "Entry updated successfully.",
+            "success",
+        )
 
     except SQLAlchemyError:
         db.session.rollback()
@@ -183,7 +263,9 @@ def edit_class_note(edit_id):
             "danger",
         )
 
-    return redirect(url_for("app_portal.class_notes"))
+    return redirect(
+        url_for("app_portal.class_notes")
+    )
 
 
 @app_portal_bp.route("/memoriam")

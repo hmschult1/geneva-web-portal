@@ -4,8 +4,10 @@
 {% block content %}
 <section>
   <div class="title-container">
-  <h2 class="section-title">Class Note Entries</h2>
-  <button type="button" class="btn btn-secondary push-right" data-bs-dismiss="modal"><a href="#" class="btn-link">Add Class Note</a></button></div>
+    <h2 class="section-title">Class Note Entries</h2>
+    <button type="button" class="btn btn-secondary push-right" data-bs-dismiss="modal"><a href="#" class="btn-link">Add
+        Class Note</a></button>
+  </div>
 
   <div class="table-wrap">
     <table class="data-table" aria-label="Class Notes Entries Table">
@@ -33,9 +35,18 @@
             entry.alumni_update.submitted_at else '' }}</td>
           <td style="text-align: left;" class="cell-name">{{ entry.alumni_update.alumnus.first_name }} {{
             entry.alumni_update.alumnus.last_name }}</td>
-          <td style="text-align: left;" class="cell-grad-year">{{
-            entry.alumni_update.alumnus.geneva_educations[0].graduation_year if
-            entry.alumni_update.alumnus.geneva_educations else '' }}</td>
+          <td style="text-align: left;" class="cell-grad-year">
+            {% if entry.alumni_update.alumnus.geneva_educations %}
+            {% for education in entry.alumni_update.alumnus.geneva_educations %}
+            <div>
+              {{ education.degree_level }}:
+              {{ education.graduation_year or "—" }}
+            </div>
+            {% endfor %}
+            {% else %}
+            —
+            {% endif %}
+          </td>
           <td style="text-align: left;" class="cell-note">{{ entry.class_note_text[:80] }}</td>
 
           <td class="cell-published">
@@ -153,210 +164,382 @@
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const editModal = document.getElementById('editModal');
-    const editForm = document.getElementById('editForm');
+  document.addEventListener("DOMContentLoaded", function () {
+    const editModal = document.getElementById("editModal");
+    const editForm = document.getElementById("editForm");
 
     if (!editModal || !editForm) {
-      console.error('The edit modal or edit form could not be found.');
+      console.error("The edit modal or edit form could not be found.");
       return;
     }
 
+    const modalInstance = bootstrap.Modal.getOrCreateInstance(editModal);
+
     const degreeMappings = [
       {
-        value: 'Undergraduate',
-        wrapperId: 'edit-undergrad-wrapper',
-        inputId: 'edit-undergrad-year',
-        payloadKey: 'undergrad_year'
+        value: "Undergraduate",
+        wrapperId: "edit-undergrad-wrapper",
+        inputId: "edit-undergrad-year",
+        payloadKey: "undergrad_year"
       },
       {
-        value: 'Graduate',
-        wrapperId: 'edit-graduate-wrapper',
-        inputId: 'edit-graduate-year',
-        payloadKey: 'graduate_year'
+        value: "Graduate",
+        wrapperId: "edit-graduate-wrapper",
+        inputId: "edit-graduate-year",
+        payloadKey: "graduate_year"
       },
       {
-        value: 'Online Degree',
-        wrapperId: 'edit-online-wrapper',
-        inputId: 'edit-online-year',
-        payloadKey: 'online_year'
+        value: "Online Degree",
+        wrapperId: "edit-online-wrapper",
+        inputId: "edit-online-year",
+        payloadKey: "online_year"
       }
     ];
 
-    function toggleGenevaDegreeFields() {
-      degreeMappings.forEach(mapping => {
+    function normalizeArray(value) {
+      if (Array.isArray(value)) {
+        return value.map(function (item) {
+          return String(item);
+        });
+      }
+
+      if (
+        value === null ||
+        value === undefined ||
+        value === ""
+      ) {
+        return [];
+      }
+
+      return [String(value)];
+    }
+
+    function setFieldValue(elementId, value) {
+      const element = document.getElementById(elementId);
+
+      if (!element) {
+        return;
+      }
+
+      element.value =
+        value === null || value === undefined
+          ? ""
+          : value;
+    }
+
+    function toggleGenevaDegreeFields(
+      clearUnchecked = false
+    ) {
+      degreeMappings.forEach(function (mapping) {
         const checkbox = editModal.querySelector(
-          `input[name="geneva_degrees"][value="${mapping.value}"]`
+          'input[name="geneva_degrees"]' +
+          `[value="${mapping.value}"]`
         );
 
-        const wrapper = document.getElementById(mapping.wrapperId);
-        const yearInput = document.getElementById(mapping.inputId);
+        const wrapper = document.getElementById(
+          mapping.wrapperId
+        );
+
+        const yearInput = document.getElementById(
+          mapping.inputId
+        );
 
         if (!checkbox || !wrapper) {
           return;
         }
 
-        wrapper.hidden = !checkbox.checked;
-        wrapper.style.display = checkbox.checked ? '' : 'none';
+        const isChecked = checkbox.checked;
 
-        if (yearInput) {
-          yearInput.disabled = !checkbox.checked;
+        wrapper.style.display = isChecked
+          ? ""
+          : "none";
 
-          /*
-           * Clear the year when a degree is unchecked.
-           * This prevents a deleted education record's year
-           * from being submitted accidentally.
-           */
-          if (!checkbox.checked) {
-            yearInput.value = '';
-          }
+        /*
+         * Do not disable the input. Disabled fields are omitted
+         * from the POST request.
+         *
+         * The selected degree checkboxes determine whether the
+         * model adds, updates, or removes each education record.
+         */
+        if (
+          yearInput &&
+          !isChecked &&
+          clearUnchecked
+        ) {
+          yearInput.value = "";
         }
       });
     }
 
     function populateGenevaEducationFields(payload) {
-      const selectedDegrees = Array.isArray(payload.geneva_degrees)
-        ? payload.geneva_degrees
-        : [];
+      const selectedDegrees = normalizeArray(
+        payload.geneva_degrees
+      );
 
       editModal
-        .querySelectorAll('input[name="geneva_degrees"]')
-        .forEach(checkbox => {
-          checkbox.checked = selectedDegrees.includes(checkbox.value);
+        .querySelectorAll(
+          'input[name="geneva_degrees"]'
+        )
+        .forEach(function (checkbox) {
+          checkbox.checked = selectedDegrees.includes(
+            String(checkbox.value)
+          );
         });
 
-      degreeMappings.forEach(mapping => {
-        const yearInput = document.getElementById(mapping.inputId);
+      degreeMappings.forEach(function (mapping) {
+        const yearInput = document.getElementById(
+          mapping.inputId
+        );
 
-        if (yearInput) {
-          yearInput.value = payload[mapping.payloadKey] || '';
+        if (!yearInput) {
+          return;
         }
+
+        const yearValue = payload[mapping.payloadKey];
+
+        yearInput.value =
+          yearValue === null ||
+            yearValue === undefined
+            ? ""
+            : yearValue;
       });
 
-      toggleGenevaDegreeFields();
+      /*
+       * Show the selected year fields without clearing any
+       * values loaded from the payload.
+       */
+      toggleGenevaDegreeFields(false);
     }
 
-    /*
-     * Show or hide the corresponding graduation-year field
-     * whenever a Geneva degree checkbox changes.
-     */
+    function resetImagePreview() {
+      const previewWrapper = document.getElementById(
+        "image_preview_wrapper"
+      );
+
+      const previewImage = document.getElementById(
+        "image_preview"
+      );
+
+      const filenameDisplay = document.getElementById(
+        "image_filename_display"
+      );
+
+      const existingImageInput = document.getElementById(
+        "existing_image"
+      );
+
+      if (previewImage) {
+        previewImage.src = "";
+      }
+
+      if (previewWrapper) {
+        previewWrapper.style.display = "none";
+      }
+
+      if (filenameDisplay) {
+        filenameDisplay.textContent = "";
+      }
+
+      if (existingImageInput) {
+        existingImageInput.value = "";
+      }
+    }
+
+    function populateImagePreview(payload) {
+      const imageFilename =
+        payload.image_filename ||
+        payload.existing_image ||
+        "";
+
+      const previewWrapper = document.getElementById(
+        "image_preview_wrapper"
+      );
+
+      const previewImage = document.getElementById(
+        "image_preview"
+      );
+
+      const filenameDisplay = document.getElementById(
+        "image_filename_display"
+      );
+
+      const existingImageInput = document.getElementById(
+        "existing_image"
+      );
+
+      if (!imageFilename) {
+        resetImagePreview();
+        return;
+      }
+
+      if (existingImageInput) {
+        existingImageInput.value = imageFilename;
+      }
+
+      /*
+       * Temporary local/static preview path.
+       *
+       * Replace this path later when Azure Blob Storage is
+       * implemented.
+       */
+      if (previewImage) {
+        previewImage.src =
+          "/static/uploads/" +
+          encodeURIComponent(imageFilename);
+      }
+
+      if (previewWrapper) {
+        previewWrapper.style.display = "block";
+      }
+
+      if (filenameDisplay) {
+        filenameDisplay.textContent =
+          `Filename: ${imageFilename}`;
+      }
+    }
+
+    function populateModal(payload) {
+      setFieldValue(
+        "edit_id",
+        payload.id
+      );
+
+      setFieldValue(
+        "first_name",
+        payload.first_name
+      );
+
+      setFieldValue(
+        "last_name",
+        payload.last_name
+      );
+
+      setFieldValue(
+        "maiden_name",
+        payload.maiden_name
+      );
+
+      setFieldValue(
+        "nameplate",
+        payload.nameplate
+      );
+
+      setFieldValue(
+        "class_note_text",
+        payload.class_note_text
+      );
+
+      populateGenevaEducationFields(payload);
+      populateImagePreview(payload);
+    }
+
     editModal
-      .querySelectorAll('input[name="geneva_degrees"]')
-      .forEach(checkbox => {
-        checkbox.addEventListener('change', toggleGenevaDegreeFields);
+      .querySelectorAll(
+        'input[name="geneva_degrees"]'
+      )
+      .forEach(function (checkbox) {
+        checkbox.addEventListener(
+          "change",
+          function () {
+            /*
+             * Clear a graduation year only when the administrator
+             * actively unchecks that degree.
+             */
+            toggleGenevaDegreeFields(true);
+          }
+        );
       });
 
-    document.querySelectorAll('.edit-link').forEach(link => {
-      link.addEventListener('click', function (event) {
-        event.preventDefault();
+    document
+      .querySelectorAll(".edit-link")
+      .forEach(function (link) {
+        link.addEventListener(
+          "click",
+          function (event) {
+            event.preventDefault();
 
-        let payload = {};
+            let payload;
 
-        try {
-          payload = JSON.parse(this.dataset.payload || '{}');
-        } catch (error) {
-          console.error('The edit payload contains invalid JSON.', error);
-          return;
-        }
+            try {
+              payload = JSON.parse(
+                this.dataset.payload || "{}"
+              );
+            } catch (error) {
+              console.error(
+                "The edit payload contains invalid JSON.",
+                error
+              );
+              return;
+            }
 
-        const editUrl = this.dataset.editUrl;
+            const editUrl = this.dataset.editUrl;
 
-        if (!editUrl) {
-          console.error('No edit URL was provided for this entry.');
-          return;
-        }
+            if (!editUrl) {
+              console.error(
+                "No edit URL was provided for this entry."
+              );
+              return;
+            }
 
-        editForm.action = editUrl;
+            /*
+             * Reset values left over from the previously opened
+             * record before populating the selected record.
+             */
+            editForm.reset();
+            resetImagePreview();
 
-        const firstName = document.getElementById('first_name');
-        const lastName = document.getElementById('last_name');
-        const nameplate = document.getElementById('nameplate');
-        const classNoteText = document.getElementById('class_note_text');
-        const existingImageInput = document.getElementById('existing_image');
-        const editId = document.getElementById('edit_id');
+            editForm.action = editUrl;
 
-        if (firstName) {
-          firstName.value = payload.first_name || '';
-        }
+            populateModal(payload);
 
-        if (lastName) {
-          lastName.value = payload.last_name || '';
-        }
+            modalInstance.show();
+          }
+        );
+      });
 
-        if (nameplate) {
-          nameplate.value = payload.nameplate || '';
-        }
-
-        if (classNoteText) {
-          classNoteText.value = payload.class_note_text || '';
-        }
-
-        if (editId) {
-          editId.value = payload.id || '';
-        }
-
+    editForm.addEventListener(
+      "submit",
+      function () {
         /*
-         * Populate all Geneva education checkboxes and years.
+         * No graduation-year fields are disabled, so selected
+         * year values will be included in the POST request.
          *
-         * Expected payload fields:
-         * - geneva_degrees
-         * - undergrad_year
-         * - graduate_year
-         * - online_year
+         * This temporary log can be removed after confirming
+         * that edits are being submitted correctly.
          */
-        populateGenevaEducationFields(payload);
+        console.log({
+          editId: document.getElementById("edit_id")?.value,
 
-        const imageFilename = payload.image_filename || '';
-        const previewWrapper = document.getElementById(
-          'image_preview_wrapper'
-        );
-        const previewImg = document.getElementById('image_preview');
-        const filenameDisplay = document.getElementById(
-          'image_filename_display'
-        );
+          genevaDegrees: Array.from(
+            editForm.querySelectorAll(
+              'input[name="geneva_degrees"]:checked'
+            )
+          ).map(function (checkbox) {
+            return checkbox.value;
+          }),
 
-        if (
-          imageFilename &&
-          previewWrapper &&
-          previewImg &&
-          existingImageInput
-        ) {
-          previewImg.src = `/static/uploads/${encodeURIComponent(
-            imageFilename
-          )}`;
+          undergradYear:
+            document.getElementById(
+              "edit-undergrad-year"
+            )?.value || "",
 
-          previewWrapper.style.display = 'block';
-          existingImageInput.value = imageFilename;
+          graduateYear:
+            document.getElementById(
+              "edit-graduate-year"
+            )?.value || "",
 
-          if (filenameDisplay) {
-            filenameDisplay.textContent = `Filename: ${imageFilename}`;
-          }
-        } else {
-          if (previewImg) {
-            previewImg.src = '';
-          }
-
-          if (previewWrapper) {
-            previewWrapper.style.display = 'none';
-          }
-
-          if (existingImageInput) {
-            existingImageInput.value = '';
-          }
-
-          if (filenameDisplay) {
-            filenameDisplay.textContent = '';
-          }
-        }
-
-        bootstrap.Modal.getOrCreateInstance(editModal).show();
-      });
-    });
+          onlineYear:
+            document.getElementById(
+              "edit-online-year"
+            )?.value || ""
+        });
+      }
+    );
 
     /*
-     * Establish the correct initial state before a modal is opened.
+     * Establish a clean initial state before any record is opened.
      */
-    toggleGenevaDegreeFields();
+    toggleGenevaDegreeFields(false);
   });
 </script>
 {% endblock %}

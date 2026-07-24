@@ -756,16 +756,10 @@ class AlumniClassNote(db.Model):
 
     def apply_class_note_edit(self, form):
         """
-        Apply edits submitted through the class-note edit modal.
+        Apply edits from the class-note edit modal.
 
-        This updates:
-        - Alumni name fields
-        - Alumni Geneva education records
-        - Class-note nameplate
-        - Class-note text
-        - Existing image filename
-
-        The route must call db.session.commit().
+        Geneva education records belong to the alumnus associated
+        with this class note's AlumniUpdate.
         """
         update = self.alumni_update
         alumnus = update.alumnus if update else None
@@ -773,60 +767,21 @@ class AlumniClassNote(db.Model):
         if not update or not alumnus:
             raise ValueError(
                 f"Class note {self.id} does not have an associated "
-                "alumni update and alumnus."
+                "AlumniUpdate and Alumni record."
             )
 
-        # Alumni name fields
         alumnus.first_name = form.first_name.data or ""
         alumnus.last_name = form.last_name.data or ""
         alumnus.maiden_name = form.maiden_name.data or ""
 
-        # Alumni Geneva education fields
-        selected_degrees = set(
-            form.geneva_degrees.data or []
-        )
+        # Updates the existing AlumniGenevaEducation records associated
+        # with update.alumnus. A new record is created only when the
+        # selected degree does not already exist.
+        update._apply_geneva_education_edits(form)
 
-        degree_years = {
-            "Undergraduate": form.undergrad_year.data,
-            "Graduate": form.graduate_year.data,
-            "Online Degree": form.online_year.data,
-        }
-
-        existing_educations = {
-            education.degree_level: education
-            for education in alumnus.geneva_educations
-            if education.degree_level
-        }
-
-        for degree_level, graduation_year in degree_years.items():
-            existing_education = existing_educations.get(
-                degree_level
-            )
-
-            if degree_level in selected_degrees:
-                if existing_education:
-                    existing_education.graduation_year = (
-                        graduation_year or ""
-                    )
-                else:
-                    alumnus.geneva_educations.append(
-                        AlumniGenevaEducation(
-                            degree_level=degree_level,
-                            graduation_year=graduation_year or "",
-                        )
-                    )
-
-            elif existing_education:
-                db.session.delete(existing_education)
-
-        # Class-note fields
         self.nameplate = form.nameplate.data or ""
         self.class_note_text = form.class_note_text.data or ""
 
-        # Preserve the current image filename.
-        #
-        # Later, this section can be replaced with Azure Blob Storage
-        # upload/replacement/removal logic.
         if hasattr(form, "existing_image"):
             self.image_filename = (
                 form.existing_image.data

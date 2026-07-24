@@ -31,8 +31,18 @@
             and entry.submitted_at else '' }}</td>
           <td style="text-align: left;" class="cell-name">{{ entry.alumnus.first_name }} {{ entry.alumnus.last_name }}
           </td>
-          <td style="text-align: left;" class="cell-grad-year">{{ entry.alumnus.geneva_educations[0].graduation_year if
-            entry.alumnus.geneva_educations else '' }}</td>
+          <td style="text-align: left;" class="cell-grad-year">
+            {% if entry.alumnus.geneva_educations %}
+            {% for education in entry.alumnus.geneva_educations %}
+            <div>
+              {{ education.degree_level }}:
+              {{ education.graduation_year or "—" }}
+            </div>
+            {% endfor %}
+            {% else %}
+            —
+            {% endif %}
+          </td>
           <td style="text-align: left;" class="cell-published">
             {% if entry.enteredInRE == True %}
             <img src="{{ url_for('static', filename='_assets/check-icon.png') }}" alt="Entered In RE">
@@ -453,18 +463,21 @@
 
         const isChecked = checkbox.checked;
 
-        wrapper.style.display = isChecked ? '' : 'none';
+        wrapper.style.display = isChecked ? "" : "none";
 
-        if (yearInput) {
-          /*
-           * Disabled fields are not included in the POST request.
-           * This is appropriate for unselected degree types.
-           */
-          yearInput.disabled = !isChecked;
-
-          if (!isChecked && clearUnchecked) {
-            yearInput.value = '';
-          }
+        /*
+        * Do not disable the field. Disabled fields are omitted
+        * from the submitted POST data.
+        *
+        * The model determines whether the year should be saved
+        * based on the selected degree checkbox.
+        */
+        if (
+          yearInput &&
+          !isChecked &&
+          clearUnchecked
+        ) {
+          yearInput.value = "";
         }
       });
     }
@@ -586,15 +599,29 @@
         );
       });
 
-    editForm.addEventListener('submit', function () {
-      /*
-       * Make sure selected year fields are enabled when the form
-       * is submitted.
-       */
-      degreeGroups.forEach(function (group) {
-        toggleDegreeGroup(group, false);
+    editForm.addEventListener("submit", function () {
+      console.log({
+        genevaDegrees: Array.from(
+          editForm.querySelectorAll(
+            'input[name="geneva_degrees"]:checked'
+          )
+        ).map(function (checkbox) {
+          return checkbox.value;
+        }),
+
+        undergradYear: document.getElementById(
+          "edit-undergrad-year"
+        )?.value,
+
+        graduateYear: document.getElementById(
+          "edit-graduate-year"
+        )?.value,
+
+        onlineYear: document.getElementById(
+          "edit-online-year"
+        )?.value,
       });
     });
-  });
+  });    
 </script>
 {% endblock %}

@@ -298,6 +298,8 @@
       return;
     }
 
+    const modalInstance = bootstrap.Modal.getOrCreateInstance(editModal);
+
     const degreeGroups = [
       {
         checkboxName: 'geneva_degrees',
@@ -349,14 +351,101 @@
       }
     ];
 
-    function toggleDegreeGroup(group, clearUnchecked = false) {
+    const standardFieldMapping = {
+      first_name: 'first_name',
+      last_name: 'last_name',
+      maiden_name: 'maiden_name',
+      email: 'email',
+      phone: 'phone',
+      phone_type: 'phone_type',
+      address_line1: 'address_line1',
+      address_line2: 'address_line2',
+      city: 'city',
+      state: 'state',
+      postal_code: 'postal_code',
+      country: 'country',
+      marital_status: 'marital_status',
+      spouse_name: 'spouse_name',
+      marry_date: 'marry_date',
+      child_first_name: 'child_first_name',
+      child_last_name: 'child_last_name',
+      child_gender: 'child_gender',
+      child_birthday: 'child_birthday',
+      employer: 'employer',
+      position: 'position',
+      start_date: 'start_date',
+      additional_institution: 'additional_institution',
+      additional_degree: 'additional_degree',
+      education_grad_year: 'education_grad_year',
+      additional_updates: 'additional_updates',
+      other_volunteer: 'other_volunteer',
+      id: 'edit_id'
+    };
+
+    function normalizeArray(value) {
+      if (Array.isArray(value)) {
+        return value.map(function (item) {
+          return String(item);
+        });
+      }
+
+      if (value === null || value === undefined || value === '') {
+        return [];
+      }
+
+      return [String(value)];
+    }
+
+    function setStandardField(elementId, value) {
+      const element = document.getElementById(elementId);
+
+      if (!element) {
+        return;
+      }
+
+      element.value =
+        value === null || value === undefined
+          ? ''
+          : value;
+    }
+
+    function populateStandardFields(payload) {
+      Object.entries(standardFieldMapping).forEach(
+        function ([payloadKey, elementId]) {
+          setStandardField(
+            elementId,
+            payload[payloadKey]
+          );
+        }
+      );
+    }
+
+    function populateCheckboxGroup(fieldName, selectedValues) {
+      const normalizedValues = normalizeArray(selectedValues);
+
+      editModal
+        .querySelectorAll(`input[name="${fieldName}"]`)
+        .forEach(function (checkbox) {
+          checkbox.checked = normalizedValues.includes(
+            String(checkbox.value)
+          );
+        });
+    }
+
+    function toggleDegreeGroup(group, clearUnchecked) {
       group.mappings.forEach(function (mapping) {
         const checkbox = editModal.querySelector(
-          `input[name="${group.checkboxName}"][value="${mapping.value}"]`
+          `input[name="${group.checkboxName}"]` +
+          `[value="${mapping.value}"]`
         );
 
-        const wrapper = document.getElementById(mapping.wrapperId);
-        const yearInput = document.getElementById(mapping.inputId);
+        const wrapper = document.getElementById(
+          mapping.wrapperId
+        );
+
+        const yearInput = document.getElementById(
+          mapping.inputId
+        );
 
         if (!checkbox || !wrapper) {
           return;
@@ -367,6 +456,10 @@
         wrapper.style.display = isChecked ? '' : 'none';
 
         if (yearInput) {
+          /*
+           * Disabled fields are not included in the POST request.
+           * This is appropriate for unselected degree types.
+           */
           yearInput.disabled = !isChecked;
 
           if (!isChecked && clearUnchecked) {
@@ -377,113 +470,129 @@
     }
 
     function populateDegreeGroup(group, payload) {
-      const selectedDegrees = Array.isArray(
+      const selectedDegrees = normalizeArray(
         payload[group.payloadDegreesKey]
-      )
-        ? payload[group.payloadDegreesKey]
-        : [];
+      );
 
       editModal
-        .querySelectorAll(`input[name="${group.checkboxName}"]`)
+        .querySelectorAll(
+          `input[name="${group.checkboxName}"]`
+        )
         .forEach(function (checkbox) {
-          checkbox.checked = selectedDegrees.includes(checkbox.value);
+          checkbox.checked = selectedDegrees.includes(
+            String(checkbox.value)
+          );
         });
 
       group.mappings.forEach(function (mapping) {
-        const yearInput = document.getElementById(mapping.inputId);
+        const yearInput = document.getElementById(
+          mapping.inputId
+        );
 
-        if (yearInput) {
-          yearInput.value = payload[mapping.payloadYearKey] ?? '';
+        if (!yearInput) {
+          return;
         }
+
+        const yearValue = payload[mapping.payloadYearKey];
+
+        yearInput.value =
+          yearValue === null || yearValue === undefined
+            ? ''
+            : yearValue;
       });
 
       toggleDegreeGroup(group, false);
     }
 
+    function populateModal(payload) {
+      populateStandardFields(payload);
+
+      degreeGroups.forEach(function (group) {
+        populateDegreeGroup(group, payload);
+      });
+
+      populateCheckboxGroup(
+        'update_types',
+        payload.update_types
+      );
+
+      populateCheckboxGroup(
+        'volunteer_choices',
+        payload.volunteer_choices
+      );
+    }
+
     degreeGroups.forEach(function (group) {
       editModal
-        .querySelectorAll(`input[name="${group.checkboxName}"]`)
+        .querySelectorAll(
+          `input[name="${group.checkboxName}"]`
+        )
         .forEach(function (checkbox) {
-          checkbox.addEventListener('change', function () {
-            toggleDegreeGroup(group, true);
-          });
+          checkbox.addEventListener(
+            'change',
+            function () {
+              toggleDegreeGroup(group, true);
+            }
+          );
         });
 
       toggleDegreeGroup(group, false);
     });
 
-    document.querySelectorAll('.edit-link').forEach(function (link) {
-      link.addEventListener('click', function (event) {
-        event.preventDefault();
+    document
+      .querySelectorAll('.edit-link')
+      .forEach(function (link) {
+        link.addEventListener(
+          'click',
+          function (event) {
+            event.preventDefault();
 
-        let payload = {};
+            let payload;
 
-        try {
-          payload = JSON.parse(this.dataset.payload || '{}');
-        } catch (error) {
-          console.error('The edit payload contains invalid JSON.', error);
-          return;
-        }
+            try {
+              payload = JSON.parse(
+                this.dataset.payload || '{}'
+              );
+            } catch (error) {
+              console.error(
+                'The edit payload contains invalid JSON.',
+                error
+              );
+              return;
+            }
 
-        const editUrl = this.dataset.editUrl;
+            const editUrl = this.dataset.editUrl;
 
-        if (!editUrl) {
-          console.error('No edit URL was provided for this entry.');
-          return;
-        }
+            if (!editUrl) {
+              console.error(
+                'No edit URL was provided for this entry.'
+              );
+              return;
+            }
 
-        // Send the form to:
-        // /alumni_update/<edit_id>/edit
-        editForm.action = editUrl;
+            editForm.action = editUrl;
 
-        const mapping = {
-          first_name: 'first_name',
-          last_name: 'last_name',
-          maiden_name: 'maiden_name',
-          email: 'email',
-          phone: 'phone',
-          phone_type: 'phone_type',
-          address_line1: 'address_line1',
-          address_line2: 'address_line2',
-          city: 'city',
-          state: 'state',
-          postal_code: 'postal_code',
-          country: 'country',
-          marital_status: 'marital_status',
-          spouse_name: 'spouse_name',
-          marry_date: 'marry_date',
-          employer: 'employer',
-          position: 'position',
-          start_date: 'start_date',
-          additional_institution: 'additional_institution',
-          additional_degree: 'additional_degree',
-          education_grad_year: 'education_grad_year',
-          additional_updates: 'additional_updates',
-          other_volunteer: 'other_volunteer',
-          id: 'note_id'
-        };
+            /*
+             * Reset the form before inserting a different entry.
+             * This prevents checkbox values from the previous entry
+             * from remaining selected.
+             */
+            editForm.reset();
 
-        Object.entries(mapping).forEach(function ([sourceKey, elementId]) {
-          const element = document.getElementById(elementId);
+            populateModal(payload);
 
-          if (!element) {
-            return;
+            modalInstance.show();
           }
+        );
+      });
 
-          let value = payload[sourceKey] ?? '';
-
-          if (value === null || value === undefined) {
-            value = '';
-          }
-
-          element.value = value;
-        });
-
-        degreeGroups.forEach(function (group) {
-          populateDegreeGroup(group, payload);
-        });
-
-        bootstrap.Modal.getOrCreateInstance(editModal).show();
+    editForm.addEventListener('submit', function () {
+      /*
+       * Make sure selected year fields are enabled when the form
+       * is submitted.
+       */
+      degreeGroups.forEach(function (group) {
+        toggleDegreeGroup(group, false);
       });
     });
   });

@@ -3,7 +3,6 @@ import enum
 
 from app import db
 
-
 # Alumni submission data lives in these models. Staff/admin access is handled
 # separately by the auth user model and is not created from or attached to
 # each alumni submission.
@@ -90,50 +89,36 @@ class AlumniUpdate(db.Model):
     )
     
     def apply_alumni_update_edit(self, form):
+        """
+        Apply all fields submitted through EditAlumniUpdateEntryForm.
+
+        This method changes the SQLAlchemy objects in memory.
+        The route must call db.session.commit() afterward.
+        """
         alumnus = self.alumnus
 
         if not alumnus:
-            return self
+            raise ValueError(
+                f"AlumniUpdate {self.id} does not have an associated alumnus."
+            )
 
-        self.viewed = True
-
+        # Basic alumnus information
         alumnus.first_name = form.first_name.data or ""
         alumnus.last_name = form.last_name.data or ""
         alumnus.maiden_name = form.maiden_name.data or ""
+        alumnus.email = form.email.data or ""
+        alumnus.phone = form.phone.data or ""
+        alumnus.phone_type = form.phone_type.data or None
 
-        selected_degrees = set(form.geneva_degrees.data or [])
+        # Related information
+        self._apply_geneva_education_edits(form)
+        self._apply_address_edits(form)
+        self._apply_family_edits(form)
+        self._apply_child_edits(form)
+        self._apply_employment_edits(form)
+        self._apply_additional_education_edits(form)
 
-        degree_years = {
-            "Undergraduate": form.undergrad_year.data,
-            "Graduate": form.graduate_year.data,
-            "Online Degree": form.online_year.data,
-        }
-
-        existing_educations = {
-            education.degree_level: education
-            for education in alumnus.geneva_educations
-        }
-
-        for degree_level, graduation_year in degree_years.items():
-            existing_education = existing_educations.get(degree_level)
-
-        if degree_level in selected_degrees:
-            if existing_education:
-                # Update the current record
-                existing_education.graduation_year = graduation_year or ""
-            else:
-                # Add a newly selected record
-                alumnus.geneva_educations.append(
-                    AlumniGenevaEducation(
-                        degree_level=degree_level,
-                        graduation_year=graduation_year or "",
-                    )
-                )
-
-        elif existing_education:
-            # Degree was unchecked, so delete its record
-            db.session.delete(existing_education)
-
+        # Fields stored directly on AlumniUpdate
         self.update_types = form.update_types.data or []
         self.additional_updates = form.additional_updates.data or ""
         self.volunteer_choices = form.volunteer_choices.data or []
@@ -142,42 +127,518 @@ class AlumniUpdate(db.Model):
         return self
 
 
-    def to_edit_alumni_update_modal_payload(self):
+    def _apply_geneva_education_edits(self, form):
+        """
+        Add, update, or delete the alumnus's Geneva education records.
+        """
         alumnus = self.alumnus
-        
-        education_map = {}
 
-        if alumnus:
-            education_map = {
-                education.degree_level: education.graduation_year
-                for education in alumnus.geneva_educations
-                if education.degree_level
+        selected_degrees = set(form.geneva_degrees.data or [])
+
+        submitted_years = {
+            "Undergraduate": form.undergrad_year.data,
+            "Graduate": form.graduate_year.data,
+            "Online Degree": form.online_year.data,
+        }
+
+        existing_records = {
+            education.degree_level: education
+            for education in alumnus.geneva_educations
+            if education.degree_level
+        }
+
+        for degree_level, graduation_year in submitted_years.items():
+            existing_record = existing_records.get(degree_level)
+
+            if degree_level in selected_degrees:
+                if existing_record:
+                    existing_record.graduation_year = graduation_year or ""
+                else:
+                    alumnus.geneva_educations.append(
+                        AlumniGenevaEducation(
+                            degree_level=degree_level,
+                            graduation_year=graduation_year or "",
+                        )
+                    )
+
+            elif existing_record:
+                db.session.delete(existing_record)
+
+
+    def _apply_address_edits(self, form):
+        """
+        Update the alumnus's first address record or create one when needed.
+        """
+        alumnus = self.alumnus
+
+        if not alumnus:
+            return
+
+        address_values = {
+            "address_line1": form.address_line1.data or "",
+            "address_line2": form.address_line2.data or "",
+            "city": form.city.data or "",
+            "state": form.state.data or "",
+            "postal_code": form.postal_code.data or "",
+            "country": form.country.data or "",
+        }
+
+        has_address_data = any(address_values.values())
+
+        address = (
+            alumnus.addresses[0]
+            if alumnus.addresses
+            else None
+        )
+
+        if not address and has_address_data:
+            address = AlumniAddress()
+            alumnus.addresses.append(address)
+
+        if not address:
+            return
+
+        address.address_line1 = address_values["address_line1"]
+        address.address_line2 = address_values["address_line2"]
+        address.city = address_values["city"]
+        address.state = address_values["state"]
+        address.postal_code = address_values["postal_code"]
+        address.country = address_values["country"]
+
+    def _apply_family_edits(self, form):
+        family = self.family_update
+
+        selected_spouse_degrees = set(
+            form.spouse_geneva_degrees.data or []
+        )
+
+        has_family_data = any([
+            form.marital_status.data,
+            form.spouse_name.data,
+            form.marry_date.data,
+            selected_spouse_degrees,
+            form.spouse_undergrad_year.data,
+            form.spouse_graduate_year.data,
+            form.spouse_online_year.data,
+        ])
+
+        if not family and has_family_data:
+            family = AlumniFamilyUpdate()
+            self.family_update = family
+
+        if not family:
+            return
+
+        family.marital_status = form.marital_status.data or ""
+        family.spouse_name = form.spouse_name.data or ""
+        family.marry_date = form.marry_date.data
+
+        family.spouse_geneva_degrees = list(
+            selected_spouse_degrees
+        )
+
+        family.spouse_undergrad_year = (
+            (form.spouse_undergrad_year.data or "")
+            if "Undergraduate" in selected_spouse_degrees
+            else ""
+        )
+
+        family.spouse_graduate_year = (
+            (form.spouse_graduate_year.data or "")
+            if "Graduate" in selected_spouse_degrees
+            else ""
+        )
+
+        family.spouse_online_year = (
+            (form.spouse_online_year.data or "")
+            if "Online Degree" in selected_spouse_degrees
+            else ""
+        )
+
+    def _apply_child_edits(self, form):
+        """
+        Update the first child associated with the update or create one.
+
+        Your current form contains only one set of child fields, so this method
+        edits the first child record.
+        """
+        child_values = {
+            "first_name": form.child_first_name.data or "",
+            "last_name": form.child_last_name.data or "",
+            "gender": form.child_gender.data or "",
+            "birthday": form.child_birthday.data,
+        }
+
+        has_child_data = any([
+            child_values["first_name"],
+            child_values["last_name"],
+            child_values["gender"],
+            child_values["birthday"],
+        ])
+
+        child = self.children[0] if self.children else None
+
+        if not child and has_child_data:
+            child = AlumniChild()
+            self.children.append(child)
+
+        if not child:
+            return
+
+        child.first_name = child_values["first_name"]
+        child.last_name = child_values["last_name"]
+        child.gender = child_values["gender"]
+        child.birthday = child_values["birthday"]
+
+
+    def _apply_employment_edits(self, form):
+        """
+        Update the first employment record or create one.
+
+        The form currently provides one employer, position, and start date.
+        """
+        employment_values = {
+            "employer": form.employer.data or "",
+            "position": form.position.data or "",
+            "start_date": form.start_date.data,
+        }
+
+        has_employment_data = any([
+            employment_values["employer"],
+            employment_values["position"],
+            employment_values["start_date"],
+        ])
+
+        employment = (
+            self.employment_updates[0]
+            if self.employment_updates
+            else None
+        )
+
+        if not employment and has_employment_data:
+            employment = AlumniEmploymentUpdate()
+            self.employment_updates.append(employment)
+
+        if not employment:
+            return
+
+        employment.employer = employment_values["employer"]
+        employment.position = employment_values["position"]
+        employment.start_date = employment_values["start_date"]
+
+
+    def _apply_additional_education_edits(self, form):
+        """
+        Update the first non-Geneva education record or create one.
+        """
+        education_values = {
+            "institution": form.additional_institution.data or "",
+            "degree": form.additional_degree.data or "",
+            "graduation_year": form.education_grad_year.data or "",
+        }
+
+        has_education_data = any(education_values.values())
+
+        education = (
+            self.education_updates[0]
+            if self.education_updates
+            else None
+        )
+
+        if not education and has_education_data:
+            education = AlumniEducationUpdate()
+            self.education_updates.append(education)
+
+        if not education:
+            return
+
+        education.institution = education_values["institution"]
+        education.degree = education_values["degree"]
+        education.graduation_year = education_values["graduation_year"]
+
+
+    def to_edit_alumni_update_modal_payload(self):
+        """
+        Return the AlumniUpdate and its related records as a JSON-safe
+        dictionary for the edit modal.
+        """
+        alumnus = self.alumnus
+
+        if not alumnus:
+            return {
+                "id": self.id,
             }
 
+        # ---------------------------------------------------------
+        # Geneva education
+        # ---------------------------------------------------------
+
+        alumni_education_map = {
+            education.degree_level: education.graduation_year
+            for education in (alumnus.geneva_educations or [])
+            if education.degree_level
+        }
+
+        # ---------------------------------------------------------
+        # Address
+        # ---------------------------------------------------------
+
+        address = (
+            alumnus.addresses[0]
+            if alumnus.addresses
+            else None
+        )
+
+        # ---------------------------------------------------------
+        # Family and spouse
+        # ---------------------------------------------------------
+
+        family = self.family_update
+
+        spouse_geneva_degrees = (
+            family.spouse_geneva_degrees or []
+            if family
+            else []
+        )
+
+        # ---------------------------------------------------------
+        # Child
+        # ---------------------------------------------------------
+
+        child = self.children[0] if self.children else None
+
+        # ---------------------------------------------------------
+        # Employment
+        # ---------------------------------------------------------
+
+        employment = (
+            self.employment_updates[0]
+            if self.employment_updates
+            else None
+        )
+
+        # ---------------------------------------------------------
+        # Additional education
+        # ---------------------------------------------------------
+
+        additional_education = (
+            self.education_updates[0]
+            if self.education_updates
+            else None
+        )
+
+        # ---------------------------------------------------------
+        # Helper for JSON-safe date values
+        # ---------------------------------------------------------
+
+        def format_date(value):
+            if not value:
+                return ""
+
+            if hasattr(value, "isoformat"):
+                return value.isoformat()
+
+            return str(value)
+
+        # ---------------------------------------------------------
+        # Complete modal payload
+        # ---------------------------------------------------------
+
         return {
+            # Update identifier
             "id": self.id,
-            "first_name": alumnus.first_name if alumnus else "",
-            "last_name": alumnus.last_name if alumnus else "",
-            "maiden_name": alumnus.maiden_name if alumnus else "",
-            "geneva_degrees": list(education_map.keys()),
-            "undergrad_year": education_map.get(
-            "Undergraduate",
-            "",
+
+            # Basic alumnus information
+            "first_name": alumnus.first_name or "",
+            "last_name": alumnus.last_name or "",
+            "maiden_name": alumnus.maiden_name or "",
+            "email": alumnus.email or "",
+            "phone": alumnus.phone or "",
+
+            # If phone_type is an enum, .value makes it JSON-safe.
+            "phone_type": (
+                alumnus.phone_type.value
+                if hasattr(alumnus.phone_type, "value")
+                else alumnus.phone_type or ""
             ),
 
-            "graduate_year": education_map.get(
-            "Graduate",
-            "",
+            # Alumnus Geneva education
+            "geneva_degrees": list(
+                alumni_education_map.keys()
+            ),
+            "undergrad_year": (
+                alumni_education_map.get(
+                    "Undergraduate",
+                    "",
+                )
+                or ""
+            ),
+            "graduate_year": (
+                alumni_education_map.get(
+                    "Graduate",
+                    "",
+                )
+                or ""
+            ),
+            "online_year": (
+                alumni_education_map.get(
+                    "Online Degree",
+                    "",
+                )
+                or ""
             ),
 
-            "online_year": education_map.get(
-            "Online Degree",
-            "",
-             ),
-            "update_types": self.update_types or [],
-            "additional_updates": self.additional_updates or "",
-            "volunteer_choices": self.volunteer_choices or [],
-            "other_volunteer": self.other_volunteer or "",
+            # Address
+            "address_line1": (
+                address.address_line1
+                if address and address.address_line1
+                else ""
+            ),
+            "address_line2": (
+                address.address_line2
+                if address and address.address_line2
+                else ""
+            ),
+            "city": (
+                address.city
+                if address and address.city
+                else ""
+            ),
+            "state": (
+                address.state
+                if address and address.state
+                else ""
+            ),
+            "postal_code": (
+                address.postal_code
+                if address and address.postal_code
+                else ""
+            ),
+            "country": (
+                address.country
+                if address and address.country
+                else ""
+            ),
+
+            # Family
+            "marital_status": (
+                family.marital_status
+                if family and family.marital_status
+                else ""
+            ),
+
+            "spouse_name": (
+                family.spouse_name
+                if family and family.spouse_name
+                else ""
+            ),
+
+            "marry_date": (
+                format_date(family.marry_date)
+                if family
+                else ""
+            ),
+
+            "spouse_geneva_degrees": spouse_geneva_degrees,
+
+            "spouse_undergrad_year": (
+                family.spouse_undergrad_year
+                if family and family.spouse_undergrad_year
+                else ""
+            ),
+
+            "spouse_graduate_year": (
+                family.spouse_graduate_year
+                if family and family.spouse_graduate_year
+                else ""
+            ),
+
+            "spouse_online_year": (
+                family.spouse_online_year
+                if family and family.spouse_online_year
+                else ""
+            ),
+
+            # Child
+            "child_first_name": (
+                child.first_name
+                if child and child.first_name
+                else ""
+            ),
+            "child_last_name": (
+                child.last_name
+                if child and child.last_name
+                else ""
+            ),
+            "child_gender": (
+                child.gender
+                if child and child.gender
+                else ""
+            ),
+            "child_birthday": (
+                format_date(child.birthday)
+                if child
+                else ""
+            ),
+
+            # Employment
+            "employer": (
+                employment.employer
+                if employment and employment.employer
+                else ""
+            ),
+            "position": (
+                employment.position
+                if employment and employment.position
+                else ""
+            ),
+            "start_date": (
+                format_date(employment.start_date)
+                if employment
+                else ""
+            ),
+
+            # Additional education
+            "additional_institution": (
+                additional_education.institution
+                if (
+                    additional_education
+                    and additional_education.institution
+                )
+                else ""
+            ),
+            "additional_degree": (
+                additional_education.degree
+                if (
+                    additional_education
+                    and additional_education.degree
+                )
+                else ""
+            ),
+            "education_grad_year": (
+                additional_education.graduation_year
+                if (
+                    additional_education
+                    and additional_education.graduation_year
+                )
+                else ""
+            ),
+
+            # Update information
+            "update_types": list(
+                self.update_types or []
+            ),
+            "additional_updates": (
+                self.additional_updates or ""
+            ),
+
+            # Volunteer information
+            "volunteer_choices": list(
+                self.volunteer_choices or []
+            ),
+            "other_volunteer": (
+                self.other_volunteer or ""
+            ),
         }
 
 class AlumniAddress(db.Model):
@@ -294,91 +755,158 @@ class AlumniClassNote(db.Model):
     alumni_update = db.relationship("AlumniUpdate", back_populates="class_note")
 
     def apply_class_note_edit(self, form):
+        """
+        Apply edits submitted through the class-note edit modal.
+
+        This updates:
+        - Alumni name fields
+        - Alumni Geneva education records
+        - Class-note nameplate
+        - Class-note text
+        - Existing image filename
+
+        The route must call db.session.commit().
+        """
         update = self.alumni_update
         alumnus = update.alumnus if update else None
 
         if not update or not alumnus:
-            return self
+            raise ValueError(
+                f"Class note {self.id} does not have an associated "
+                "alumni update and alumnus."
+            )
 
-        self.viewed = True
-
+        # Alumni name fields
         alumnus.first_name = form.first_name.data or ""
         alumnus.last_name = form.last_name.data or ""
         alumnus.maiden_name = form.maiden_name.data or ""
-        
-        selected_degrees = set(form.geneva_degrees.data or [])
-        
+
+        # Alumni Geneva education fields
+        selected_degrees = set(
+            form.geneva_degrees.data or []
+        )
+
         degree_years = {
             "Undergraduate": form.undergrad_year.data,
             "Graduate": form.graduate_year.data,
             "Online Degree": form.online_year.data,
         }
-        
+
         existing_educations = {
             education.degree_level: education
             for education in alumnus.geneva_educations
+            if education.degree_level
         }
-        
-        for degree_level, graduation_year in degree_years.items():
-            existing_education = existing_educations.get(degree_level)
-        
-        if degree_level in selected_degrees:
-            if existing_education:
-                # Update the current record
-                existing_education.graduation_year = graduation_year or ""
-            else:
-                # Add a newly selected record
-                alumnus.geneva_educations.append(
-                    AlumniGenevaEducation(
-                        degree_level=degree_level,
-                        graduation_year=graduation_year or "",
-                    )
-                )
-        
-        elif existing_education:
-            # Degree was unchecked, so delete its record
-            db.session.delete(existing_education)
 
+        for degree_level, graduation_year in degree_years.items():
+            existing_education = existing_educations.get(
+                degree_level
+            )
+
+            if degree_level in selected_degrees:
+                if existing_education:
+                    existing_education.graduation_year = (
+                        graduation_year or ""
+                    )
+                else:
+                    alumnus.geneva_educations.append(
+                        AlumniGenevaEducation(
+                            degree_level=degree_level,
+                            graduation_year=graduation_year or "",
+                        )
+                    )
+
+            elif existing_education:
+                db.session.delete(existing_education)
+
+        # Class-note fields
         self.nameplate = form.nameplate.data or ""
         self.class_note_text = form.class_note_text.data or ""
-        self.image_filename = form.existing_image.data or self.image_filename or ""
+
+        # Preserve the current image filename.
+        #
+        # Later, this section can be replaced with Azure Blob Storage
+        # upload/replacement/removal logic.
+        if hasattr(form, "existing_image"):
+            self.image_filename = (
+                form.existing_image.data
+                or self.image_filename
+                or ""
+            )
 
         return self
-
+    
     def to_edit_class_note_modal_payload(self):
+        """
+        Return the data required to populate the class-note edit modal.
+        """
         update = self.alumni_update
         alumnus = update.alumnus if update else None
-        
+
         education_map = {}
-        
+
         if alumnus:
             education_map = {
-                education.degree_level: education.graduation_year
+                education.degree_level: (
+                    education.graduation_year or ""
+                )
                 for education in alumnus.geneva_educations
                 if education.degree_level
             }
 
         return {
             "id": self.id,
-            "first_name": alumnus.first_name if alumnus else "",
-            "last_name": alumnus.last_name if alumnus else "",
-            "geneva_degrees": list(education_map.keys()),
+
+            "first_name": (
+                alumnus.first_name
+                if alumnus and alumnus.first_name
+                else ""
+            ),
+
+            "last_name": (
+                alumnus.last_name
+                if alumnus and alumnus.last_name
+                else ""
+            ),
+
+            "maiden_name": (
+                alumnus.maiden_name
+                if alumnus and alumnus.maiden_name
+                else ""
+            ),
+
+            "geneva_degrees": list(
+                education_map.keys()
+            ),
+
             "undergrad_year": education_map.get(
-            "Undergraduate",
-            "",
+                "Undergraduate",
+                "",
             ),
-            
+
             "graduate_year": education_map.get(
-            "Graduate",
-            "",
+                "Graduate",
+                "",
             ),
-            
+
             "online_year": education_map.get(
-            "Online Degree",
-            "",
-             ),
+                "Online Degree",
+                "",
+            ),
+
             "nameplate": self.nameplate or "",
-            "class_note_text": self.class_note_text or "",
-            "image_filename": self.image_filename or "",
-            "existing_image": self.image_filename or "",
+
+            "class_note_text": (
+                self.class_note_text or ""
+            ),
+
+            "image_filename": (
+                self.image_filename or ""
+            ),
+
+            "existing_image": (
+                self.image_filename or ""
+            ),
+
+            "published": bool(self.published),
         }

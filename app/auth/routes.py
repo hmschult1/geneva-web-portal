@@ -89,7 +89,7 @@ def login():
 def logout():
     logout_user()
     session.clear()
-    flash('You have been logged out. Thank you for using the Geneva App Portal!', 'info')
+    flash('You have been logged out. Thank you for using the App Portal!', 'info')
     return redirect(url_for('auth.login'))
 
 @auth_bp.route("/session-timeout")

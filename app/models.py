@@ -305,19 +305,39 @@ class AlumniClassNote(db.Model):
         alumnus.first_name = form.first_name.data or ""
         alumnus.last_name = form.last_name.data or ""
         alumnus.maiden_name = form.maiden_name.data or ""
-
-        if alumnus.geneva_educations:
-            education = alumnus.geneva_educations[0]
-            education.degree_level = form.grad_degree_type.data or ""
-            education.graduation_year = form.grad_year.data or ""
-        else:
-            alumnus.geneva_educations.append(
-                AlumniGenevaEducation(
-                    alumnus_id=alumnus.id,
-                    degree_level=form.grad_degree_type.data or "",
-                    graduation_year=form.grad_year.data or "",
+        
+        selected_degrees = set(form.geneva_degrees.data or [])
+        
+        degree_years = {
+            "Undergraduate": form.undergrad_year.data,
+            "Graduate": form.graduate_year.data,
+            "Online Degree": form.online_year.data,
+        }
+        
+        existing_educations = {
+            education.degree_level: education
+            for education in alumnus.geneva_educations
+        }
+        
+        for degree_level, graduation_year in degree_years.items():
+            existing_education = existing_educations.get(degree_level)
+        
+        if degree_level in selected_degrees:
+            if existing_education:
+                # Update the current record
+                existing_education.graduation_year = graduation_year or ""
+            else:
+                # Add a newly selected record
+                alumnus.geneva_educations.append(
+                    AlumniGenevaEducation(
+                        degree_level=degree_level,
+                        graduation_year=graduation_year or "",
+                    )
                 )
-            )
+        
+        elif existing_education:
+            # Degree was unchecked, so delete its record
+            db.session.delete(existing_education)
 
         self.nameplate = form.nameplate.data or ""
         self.class_note_text = form.class_note_text.data or ""
@@ -328,17 +348,35 @@ class AlumniClassNote(db.Model):
     def to_edit_class_note_modal_payload(self):
         update = self.alumni_update
         alumnus = update.alumnus if update else None
+        
+        education_map = {}
+        
+        if alumnus:
+            education_map = {
+                education.degree_level: education.graduation_year
+                for education in alumnus.geneva_educations
+                if education.degree_level
+            }
 
         return {
             "id": self.id,
             "first_name": alumnus.first_name if alumnus else "",
             "last_name": alumnus.last_name if alumnus else "",
-            "grad_year": (
-                alumnus.geneva_educations[0].graduation_year if alumnus and alumnus.geneva_educations else ""
+            "geneva_degrees": list(education_map.keys()),
+            "undergrad_year": education_map.get(
+            "Undergraduate",
+            "",
             ),
-            "grad_degree_type": (
-                alumnus.geneva_educations[0].degree_level if alumnus and alumnus.geneva_educations else ""
+            
+            "graduate_year": education_map.get(
+            "Graduate",
+            "",
             ),
+            
+            "online_year": education_map.get(
+            "Online Degree",
+            "",
+             ),
             "nameplate": self.nameplate or "",
             "class_note_text": self.class_note_text or "",
             "image_filename": self.image_filename or "",

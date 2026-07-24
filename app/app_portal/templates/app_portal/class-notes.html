@@ -33,15 +33,25 @@
           <td style="text-align: left;" class="cell-submitted-at">{{
             entry.alumni_update.submitted_at.strftime('%Y-%m-%d') if entry.alumni_update and
             entry.alumni_update.submitted_at else '' }}</td>
-          <td style="text-align: left;" class="cell-name">{{ entry.alumni_update.alumnus.first_name }} {{
-            entry.alumni_update.alumnus.last_name }}</td>
+          <td style="text-align: left;" class="cell-name">{{ entry.alumni_update.first_name }} {{
+            entry.alumni_update.last_name }}</td>
           <td style="text-align: left;" class="cell-grad-year">
-            {% if entry.alumni_update.alumnus.geneva_educations %}
-            {% for education in entry.alumni_update.alumnus.geneva_educations %}
+            {% if entry.geneva_educations %}
+            {% for education in entry.geneva_educations %}
+            {% for degree in education.geneva_degrees or [] %}
             <div>
-              {{ education.degree_level }}:
-              {{ education.graduation_year or "—" }}
+              {{ degree }}:
+              {% if degree == "Undergraduate" %}
+              {{ education.undergrad_year or "—" }}
+              {% elif degree == "Graduate" %}
+              {{ education.grad_year or "—" }}
+              {% elif degree == "Online Degree" %}
+              {{ education.online_year or "—" }}
+              {% else %}
+              —
+              {% endif %}
             </div>
+            {% endfor %}
             {% endfor %}
             {% else %}
             —

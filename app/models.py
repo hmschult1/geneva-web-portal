@@ -129,40 +129,67 @@ class AlumniUpdate(db.Model):
 
     def _apply_geneva_education_edits(self, form):
         """
-        Add, update, or delete the alumnus's Geneva education records.
+        Add, update, or delete the alumnus's Geneva education record.
+
+        AlumniGenevaEducation stores the selected degree levels and their
+        corresponding graduation years in one related record.
         """
         alumnus = self.alumnus
 
-        selected_degrees = set(form.geneva_degrees.data or [])
+        if not alumnus:
+            raise ValueError(
+                f"AlumniUpdate {self.id} does not have an associated alumnus."
+            )
 
-        submitted_years = {
-            "Undergraduate": form.undergrad_year.data,
-            "Graduate": form.graduate_year.data,
-            "Online Degree": form.online_year.data,
-        }
+        selected_degrees = list(form.geneva_degrees.data or [])
 
-        existing_records = {
-            education.degree_level: education
-            for education in alumnus.geneva_educations
-            if education.degree_level
-        }
+        undergrad_year = (
+            form.undergrad_year.data or ""
+            if "Undergraduate" in selected_degrees
+            else ""
+        )
 
-        for degree_level, graduation_year in submitted_years.items():
-            existing_record = existing_records.get(degree_level)
+        graduate_year = (
+            form.graduate_year.data or ""
+            if "Graduate" in selected_degrees
+            else ""
+        )
 
-            if degree_level in selected_degrees:
-                if existing_record:
-                    existing_record.graduation_year = graduation_year or ""
-                else:
-                    alumnus.geneva_educations.append(
-                        AlumniGenevaEducation(
-                            degree_level=degree_level,
-                            graduation_year=graduation_year or "",
-                        )
-                    )
+        online_year = (
+            form.online_year.data or ""
+            if "Online Degree" in selected_degrees
+            else ""
+        )
 
-            elif existing_record:
-                db.session.delete(existing_record)
+        has_geneva_education_data = any([
+            selected_degrees,
+            undergrad_year,
+            graduate_year,
+            online_year,
+        ])
+
+        education = (
+            alumnus.geneva_educations[0]
+            if alumnus.geneva_educations
+            else None
+        )
+
+        if not education and has_geneva_education_data:
+            education = AlumniGenevaEducation()
+            alumnus.geneva_educations.append(education)
+
+        if not education:
+            return
+
+        # Remove the record entirely when all fields have been cleared.
+        if not has_geneva_education_data:
+            alumnus.geneva_educations.remove(education)
+            return
+
+        education.geneva_degrees = selected_degrees
+        education.undergrad_year = undergrad_year
+        education.graduate_year = graduate_year
+        education.online_year = online_year
 
 
     def _apply_address_edits(self, form):
@@ -372,12 +399,17 @@ class AlumniUpdate(db.Model):
         # ---------------------------------------------------------
         # Geneva education
         # ---------------------------------------------------------
+        geneva_education = (
+            alumnus.geneva_educations[0]
+            if alumnus.geneva_educations
+            else None
+        )
 
-        alumni_education_map = {
-            education.degree_level: education.graduation_year
-            for education in (alumnus.geneva_educations or [])
-            if education.degree_level
-        }
+        geneva_degrees = (
+            list(geneva_education.geneva_degrees or [])
+            if geneva_education
+            else []
+        )
 
         # ---------------------------------------------------------
         # Address
@@ -463,29 +495,24 @@ class AlumniUpdate(db.Model):
             ),
 
             # Alumnus Geneva education
-            "geneva_degrees": list(
-                alumni_education_map.keys()
-            ),
+            "geneva_degrees": geneva_degrees,
+
             "undergrad_year": (
-                alumni_education_map.get(
-                    "Undergraduate",
-                    "",
-                )
-                or ""
+                geneva_education.undergrad_year
+                if geneva_education and geneva_education.undergrad_year
+                else ""
             ),
+
             "graduate_year": (
-                alumni_education_map.get(
-                    "Graduate",
-                    "",
-                )
-                or ""
+                geneva_education.graduate_year
+                if geneva_education and geneva_education.graduate_year
+                else ""
             ),
+
             "online_year": (
-                alumni_education_map.get(
-                    "Online Degree",
-                    "",
-                )
-                or ""
+                geneva_education.online_year
+                if geneva_education and geneva_education.online_year
+                else ""
             ),
 
             # Address
@@ -662,11 +689,22 @@ class AlumniGenevaEducation(db.Model):
     __tablename__ = "alumni_geneva_educations"
 
     id = db.Column(db.Integer, primary_key=True)
-    alumnus_id = db.Column(db.Integer, db.ForeignKey("alumni.id"), nullable=False)
-    degree_level = db.Column(db.String(50))
-    graduation_year = db.Column(db.String(4))
 
-    alumnus = db.relationship("Alumni", back_populates="geneva_educations")
+    alumnus_id = db.Column(
+        db.Integer,
+        db.ForeignKey("alumni.id"),
+        nullable=False,
+    )
+
+    geneva_degrees = db.Column(db.JSON, nullable=True)
+    undergrad_year = db.Column(db.String(4))
+    graduate_year = db.Column(db.String(4))
+    online_year = db.Column(db.String(4))
+
+    alumnus = db.relationship(
+        "Alumni",
+        back_populates="geneva_educations",
+    )
 
 
 class AlumniFamilyUpdate(db.Model):
@@ -774,9 +812,6 @@ class AlumniClassNote(db.Model):
         alumnus.last_name = form.last_name.data or ""
         alumnus.maiden_name = form.maiden_name.data or ""
 
-        # Updates the existing AlumniGenevaEducation records associated
-        # with update.alumnus. A new record is created only when the
-        # selected degree does not already exist.
         update._apply_geneva_education_edits(form)
 
         self.nameplate = form.nameplate.data or ""
@@ -798,16 +833,16 @@ class AlumniClassNote(db.Model):
         update = self.alumni_update
         alumnus = update.alumnus if update else None
 
-        education_map = {}
+        geneva_education = None
 
-        if alumnus:
-            education_map = {
-                education.degree_level: (
-                    education.graduation_year or ""
-                )
-                for education in alumnus.geneva_educations
-                if education.degree_level
-            }
+        if alumnus and alumnus.geneva_educations:
+            geneva_education = alumnus.geneva_educations[0]
+
+        geneva_degrees = (
+            list(geneva_education.geneva_degrees or [])
+            if geneva_education
+            else []
+        )
 
         return {
             "id": self.id,
@@ -830,38 +865,33 @@ class AlumniClassNote(db.Model):
                 else ""
             ),
 
-            "geneva_degrees": list(
-                education_map.keys()
+            "geneva_degrees": geneva_degrees,
+
+            "undergrad_year": (
+                geneva_education.undergrad_year
+                if geneva_education and geneva_education.undergrad_year
+                else ""
             ),
 
-            "undergrad_year": education_map.get(
-                "Undergraduate",
-                "",
+            "graduate_year": (
+                geneva_education.graduate_year
+                if geneva_education and geneva_education.graduate_year
+                else ""
             ),
 
-            "graduate_year": education_map.get(
-                "Graduate",
-                "",
-            ),
-
-            "online_year": education_map.get(
-                "Online Degree",
-                "",
+            "online_year": (
+                geneva_education.online_year
+                if geneva_education and geneva_education.online_year
+                else ""
             ),
 
             "nameplate": self.nameplate or "",
 
-            "class_note_text": (
-                self.class_note_text or ""
-            ),
+            "class_note_text": self.class_note_text or "",
 
-            "image_filename": (
-                self.image_filename or ""
-            ),
+            "image_filename": self.image_filename or "",
 
-            "existing_image": (
-                self.image_filename or ""
-            ),
+            "existing_image": self.image_filename or "",
 
             "published": bool(self.published),
         }

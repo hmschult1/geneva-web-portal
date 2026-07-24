@@ -34,10 +34,20 @@
           <td style="text-align: left;" class="cell-grad-year">
             {% if entry.alumnus.geneva_educations %}
             {% for education in entry.alumnus.geneva_educations %}
+            {% for degree in education.geneva_degrees or [] %}
             <div>
-              {{ education.degree_level }}:
-              {{ education.graduation_year or "—" }}
+              {{ degree }}:
+              {% if degree == "Undergraduate" %}
+              {{ education.undergrad_year or "—" }}
+              {% elif degree == "Graduate" %}
+              {{ education.grad_year or "—" }}
+              {% elif degree == "Online Degree" %}
+              {{ education.online_year or "—" }}
+              {% else %}
+              —
+              {% endif %}
             </div>
+            {% endfor %}
             {% endfor %}
             {% else %}
             —

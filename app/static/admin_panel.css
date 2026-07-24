@@ -232,9 +232,21 @@ textarea {
   padding: 30px;
 }
 
-.section-title {
-  font-size: 1.7rem;
+.title-container {
+  display: flex;
+  white-space: nowrap;
+  align-items: center;
   margin-bottom: 20px;
+}
+
+.push-right {
+  margin-left: auto;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  font-size: 1.7rem;
 }
 
 /* --------------------------------------------------

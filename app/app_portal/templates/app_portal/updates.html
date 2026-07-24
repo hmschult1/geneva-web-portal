@@ -4,7 +4,7 @@
 {% block content %}
 <section>
   <div class="title-container">
-  <h2 class="section-title">Alumni Update Entries</h2>
+    <h2 class="section-title">Alumni Update Entries</h2>
   </div>
 
   <div class="table-wrap">
@@ -22,11 +22,17 @@
         {% for entry in entries %}
         <tr data-id="{{ entry.id }}">
           <td style="text-align: left;" class="cell-actions">
-            <a href="#" class="edit-link" data-id="{{ entry.id }}" data-edit-url="{{ url_for('app_portal.edit_alumni_updates', edit_id=entry.id) }}" data-payload='{{ entry.to_edit_alumni_update_modal_payload() | tojson }}'><img src="{{ url_for('static', filename='_assets/edit-icon.png') }}" alt="Edit"></a>
+            <a href="#" class="edit-link" data-id="{{ entry.id }}"
+              data-edit-url="{{ url_for('app_portal.edit_alumni_updates', edit_id=entry.id) }}"
+              data-payload='{{ entry.to_edit_alumni_update_modal_payload() | tojson }}'><img
+                src="{{ url_for('static', filename='_assets/edit-icon.png') }}" alt="Edit"></a>
           </td>
-          <td style="text-align: left;" class="cell-submitted-at">{{ entry.submitted_at.strftime('%Y-%m-%d') if entry and entry.submitted_at else '' }}</td>
-          <td style="text-align: left;" class="cell-name">{{ entry.alumnus.first_name }} {{ entry.alumnus.last_name }}</td>
-          <td style="text-align: left;" class="cell-grad-year">{{ entry.alumnus.geneva_educations[0].graduation_year if entry.alumnus.geneva_educations else '' }}</td>
+          <td style="text-align: left;" class="cell-submitted-at">{{ entry.submitted_at.strftime('%Y-%m-%d') if entry
+            and entry.submitted_at else '' }}</td>
+          <td style="text-align: left;" class="cell-name">{{ entry.alumnus.first_name }} {{ entry.alumnus.last_name }}
+          </td>
+          <td style="text-align: left;" class="cell-grad-year">{{ entry.alumnus.geneva_educations[0].graduation_year if
+            entry.alumnus.geneva_educations else '' }}</td>
           <td style="text-align: left;" class="cell-published">
             {% if entry.enteredInRE == True %}
             <img src="{{ url_for('static', filename='_assets/check-icon.png') }}" alt="Entered In RE">
@@ -65,6 +71,59 @@
             <strong>{{ form.maiden_name.label }}</strong>
             {{ form.maiden_name(id="maiden_name", class="form-control") }}
           </div>
+          <div class="mb-3 geneva-degree-container">
+            <strong>{{ form.geneva_degrees.label }}</strong>
+
+            {% for option in form.geneva_degrees %}
+            {% set degree_value = option._value() %}
+
+            <div class="geneva-degree-row mb-2">
+              <div class="geneva-degree-option">
+                {{ option(
+                class="form-check-input edit-geneva-degree",
+                id="edit-" ~ option.id
+                ) }}
+
+                <label class="form-check-label ms-2" for="edit-{{ option.id }}">
+                  {{ option.label.text }}
+                </label>
+              </div>
+
+              <div class="geneva-degree-year mt-2">
+
+                {% if degree_value == "Undergraduate" %}
+                <div id="edit-undergrad-wrapper" style="display:none;">
+                  {{ form.undergrad_year(
+                  id="edit-undergrad-year",
+                  class="form-control",
+                  placeholder="Graduation Year"
+                  ) }}
+                </div>
+
+                {% elif degree_value == "Graduate" %}
+                <div id="edit-graduate-wrapper" style="display:none;">
+                  {{ form.graduate_year(
+                  id="edit-graduate-year",
+                  class="form-control",
+                  placeholder="Graduation Year"
+                  ) }}
+                </div>
+
+                {% elif degree_value == "Online Degree" %}
+                <div id="edit-online-wrapper" style="display:none;">
+                  {{ form.online_year(
+                  id="edit-online-year",
+                  class="form-control",
+                  placeholder="Graduation Year"
+                  ) }}
+                </div>
+
+                {% endif %}
+
+              </div>
+            </div>
+            {% endfor %}
+          </div>
           <div class="mb-3">
             <strong>{{ form.email.label }}</strong>
             {{ form.email(id="email", class="form-control") }}
@@ -76,14 +135,6 @@
           <div class="mb-3">
             <strong>{{ form.phone_type.label }}</strong>
             {{ form.phone_type(id="phone_type", class="form-select") }}
-          </div>
-          <div class="mb-3">
-            <strong>{{ form.grad_year.label }}</strong>
-            {{ form.grad_year(id="grad_year", class="form-control") }}
-          </div>
-          <div class="mb-3">
-            <strong>{{ form.grad_degree_type.label }}</strong>
-            {{ form.grad_degree_type(id="grad_degree_type", class="form-select") }}
           </div>
           <div class="mb-3">
             <strong>{{ form.address_line1.label }}</strong>
@@ -118,12 +169,57 @@
             {{ form.spouse_name(id="spouse_name", class="form-control") }}
           </div>
           <div class="mb-3">
-            <strong>{{ form.spouse_grad_year.label }}</strong>
-            {{ form.spouse_grad_year(id="spouse_grad_year", class="form-control") }}
-          </div>
-          <div class="mb-3">
-            <strong>{{ form.spouse_degree_type.label }}</strong>
-            {{ form.spouse_degree_type(id="spouse_degree_type", class="form-select") }}
+            <strong>{{ form.spouse_geneva_degrees.label }}</strong>
+
+            {% for option in form.spouse_geneva_degrees %}
+            {% set degree_value = option._value() %}
+
+            <div class="geneva-degree-row mb-2">
+              <div class="geneva-degree-option">
+                {{ option(
+                class="form-check-input edit-spouse-geneva-degree",
+                id="edit-spouse-" ~ option.id
+                ) }}
+
+                <label class="form-check-label ms-2" for="edit-spouse-{{ option.id }}">
+                  {{ option.label.text }}
+                </label>
+              </div>
+
+              <div class="geneva-degree-year mt-2">
+
+                {% if degree_value == "Undergraduate" %}
+                <div id="edit-spouse-undergrad-wrapper" style="display:none;">
+                  {{ form.spouse_undergrad_year(
+                  id="edit-spouse-undergrad-year",
+                  class="form-control",
+                  placeholder="Graduation Year"
+                  ) }}
+                </div>
+
+                {% elif degree_value == "Graduate" %}
+                <div id="edit-spouse-graduate-wrapper" style="display:none;">
+                  {{ form.spouse_graduate_year(
+                  id="edit-spouse-graduate-year",
+                  class="form-control",
+                  placeholder="Graduation Year"
+                  ) }}
+                </div>
+
+                {% elif degree_value == "Online Degree" %}
+                <div id="edit-spouse-online-wrapper" style="display:none;">
+                  {{ form.spouse_online_year(
+                  id="edit-spouse-online-year",
+                  class="form-control",
+                  placeholder="Graduation Year"
+                  ) }}
+                </div>
+
+                {% endif %}
+
+              </div>
+            </div>
+            {% endfor %}
           </div>
           <div class="mb-3">
             <strong>{{ form.marry_date.label }}</strong>
@@ -194,10 +290,141 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.edit-link').forEach(link => {
+    const editModal = document.getElementById('editModal');
+    const editForm = document.getElementById('editForm');
+
+    if (!editModal || !editForm) {
+      console.error('The edit modal or edit form could not be found.');
+      return;
+    }
+
+    const degreeGroups = [
+      {
+        checkboxName: 'geneva_degrees',
+        payloadDegreesKey: 'geneva_degrees',
+        mappings: [
+          {
+            value: 'Undergraduate',
+            wrapperId: 'edit-undergrad-wrapper',
+            inputId: 'edit-undergrad-year',
+            payloadYearKey: 'undergrad_year'
+          },
+          {
+            value: 'Graduate',
+            wrapperId: 'edit-graduate-wrapper',
+            inputId: 'edit-graduate-year',
+            payloadYearKey: 'graduate_year'
+          },
+          {
+            value: 'Online Degree',
+            wrapperId: 'edit-online-wrapper',
+            inputId: 'edit-online-year',
+            payloadYearKey: 'online_year'
+          }
+        ]
+      },
+      {
+        checkboxName: 'spouse_geneva_degrees',
+        payloadDegreesKey: 'spouse_geneva_degrees',
+        mappings: [
+          {
+            value: 'Undergraduate',
+            wrapperId: 'edit-spouse-undergrad-wrapper',
+            inputId: 'edit-spouse-undergrad-year',
+            payloadYearKey: 'spouse_undergrad_year'
+          },
+          {
+            value: 'Graduate',
+            wrapperId: 'edit-spouse-graduate-wrapper',
+            inputId: 'edit-spouse-graduate-year',
+            payloadYearKey: 'spouse_graduate_year'
+          },
+          {
+            value: 'Online Degree',
+            wrapperId: 'edit-spouse-online-wrapper',
+            inputId: 'edit-spouse-online-year',
+            payloadYearKey: 'spouse_online_year'
+          }
+        ]
+      }
+    ];
+
+    function toggleDegreeGroup(group, clearUnchecked = false) {
+      group.mappings.forEach(function (mapping) {
+        const checkbox = editModal.querySelector(
+          `input[name="${group.checkboxName}"][value="${mapping.value}"]`
+        );
+
+        const wrapper = document.getElementById(mapping.wrapperId);
+        const yearInput = document.getElementById(mapping.inputId);
+
+        if (!checkbox || !wrapper) {
+          return;
+        }
+
+        const isChecked = checkbox.checked;
+
+        wrapper.style.display = isChecked ? '' : 'none';
+
+        if (yearInput) {
+          yearInput.disabled = !isChecked;
+
+          if (!isChecked && clearUnchecked) {
+            yearInput.value = '';
+          }
+        }
+      });
+    }
+
+    function populateDegreeGroup(group, payload) {
+      const selectedDegrees = Array.isArray(
+        payload[group.payloadDegreesKey]
+      )
+        ? payload[group.payloadDegreesKey]
+        : [];
+
+      editModal
+        .querySelectorAll(`input[name="${group.checkboxName}"]`)
+        .forEach(function (checkbox) {
+          checkbox.checked = selectedDegrees.includes(checkbox.value);
+        });
+
+      group.mappings.forEach(function (mapping) {
+        const yearInput = document.getElementById(mapping.inputId);
+
+        if (yearInput) {
+          yearInput.value = payload[mapping.payloadYearKey] ?? '';
+        }
+      });
+
+      toggleDegreeGroup(group, false);
+    }
+
+    degreeGroups.forEach(function (group) {
+      editModal
+        .querySelectorAll(`input[name="${group.checkboxName}"]`)
+        .forEach(function (checkbox) {
+          checkbox.addEventListener('change', function () {
+            toggleDegreeGroup(group, true);
+          });
+        });
+
+      toggleDegreeGroup(group, false);
+    });
+
+    document.querySelectorAll('.edit-link').forEach(function (link) {
       link.addEventListener('click', function (event) {
         event.preventDefault();
-        const payload = JSON.parse(this.dataset.payload || '{}');
+
+        let payload = {};
+
+        try {
+          payload = JSON.parse(this.dataset.payload || '{}');
+        } catch (error) {
+          console.error('The edit payload contains invalid JSON.', error);
+          return;
+        }
+
         const editUrl = this.dataset.editUrl;
 
         if (!editUrl) {
@@ -216,8 +443,6 @@
           email: 'email',
           phone: 'phone',
           phone_type: 'phone_type',
-          grad_year: 'grad_year',
-          grad_degree_type: 'grad_degree_type',
           address_line1: 'address_line1',
           address_line2: 'address_line2',
           city: 'city',
@@ -226,8 +451,6 @@
           country: 'country',
           marital_status: 'marital_status',
           spouse_name: 'spouse_name',
-          spouse_grad_year: 'spouse_grad_year',
-          spouse_degree_type: 'spouse_degree_type',
           marry_date: 'marry_date',
           employer: 'employer',
           position: 'position',
@@ -240,15 +463,27 @@
           id: 'note_id'
         };
 
-        Object.entries(mapping).forEach(([sourceKey, elementId]) => {
-          const el = document.getElementById(elementId);
-          if (!el) return;
-          let val = payload[sourceKey] ?? '';
-          if (val === null || val === undefined) val = '';
-          el.value = val;
+        Object.entries(mapping).forEach(function ([sourceKey, elementId]) {
+          const element = document.getElementById(elementId);
+
+          if (!element) {
+            return;
+          }
+
+          let value = payload[sourceKey] ?? '';
+
+          if (value === null || value === undefined) {
+            value = '';
+          }
+
+          element.value = value;
         });
 
-        new bootstrap.Modal(document.getElementById('editModal')).show();
+        degreeGroups.forEach(function (group) {
+          populateDegreeGroup(group, payload);
+        });
+
+        bootstrap.Modal.getOrCreateInstance(editModal).show();
       });
     });
   });

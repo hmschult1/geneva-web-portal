@@ -101,17 +101,38 @@ class AlumniUpdate(db.Model):
         alumnus.last_name = form.last_name.data or ""
         alumnus.maiden_name = form.maiden_name.data or ""
 
-        if alumnus.geneva_educations:
-            education = alumnus.geneva_educations[0]
-            education.degree_level = form.grad_degree_type.data or ""
-            education.graduation_year = form.grad_year.data or ""
-        else:
-            alumnus.geneva_educations.append(
-                AlumniGenevaEducation(
-                    degree_level=form.grad_degree_type.data or "",
-                    graduation_year=form.grad_year.data or "",
+        selected_degrees = set(form.geneva_degrees.data or [])
+
+        degree_years = {
+            "Undergraduate": form.undergrad_year.data,
+            "Graduate": form.graduate_year.data,
+            "Online Degree": form.online_year.data,
+        }
+
+        existing_educations = {
+            education.degree_level: education
+            for education in alumnus.geneva_educations
+        }
+
+        for degree_level, graduation_year in degree_years.items():
+            existing_education = existing_educations.get(degree_level)
+
+        if degree_level in selected_degrees:
+            if existing_education:
+                # Update the current record
+                existing_education.graduation_year = graduation_year or ""
+            else:
+                # Add a newly selected record
+                alumnus.geneva_educations.append(
+                    AlumniGenevaEducation(
+                        degree_level=degree_level,
+                        graduation_year=graduation_year or "",
+                    )
                 )
-            )
+
+        elif existing_education:
+            # Degree was unchecked, so delete its record
+            db.session.delete(existing_education)
 
         self.update_types = form.update_types.data or []
         self.additional_updates = form.additional_updates.data or ""
@@ -123,22 +144,36 @@ class AlumniUpdate(db.Model):
 
     def to_edit_alumni_update_modal_payload(self):
         alumnus = self.alumnus
+        
+        education_map = {}
+
+        if alumnus:
+            education_map = {
+                education.degree_level: education.graduation_year
+                for education in alumnus.geneva_educations
+                if education.degree_level
+            }
 
         return {
             "id": self.id,
             "first_name": alumnus.first_name if alumnus else "",
             "last_name": alumnus.last_name if alumnus else "",
             "maiden_name": alumnus.maiden_name if alumnus else "",
-            "grad_year": (
-            alumnus.geneva_educations[0].graduation_year
-            if alumnus and alumnus.geneva_educations
-            else ""
+            "geneva_degrees": list(education_map.keys()),
+            "undergrad_year": education_map.get(
+            "Undergraduate",
+            "",
             ),
-            "grad_degree_type": (
-                alumnus.geneva_educations[0].degree_level
-                if alumnus and alumnus.geneva_educations
-                else ""
+
+            "graduate_year": education_map.get(
+            "Graduate",
+            "",
             ),
+
+            "online_year": education_map.get(
+            "Online Degree",
+            "",
+             ),
             "update_types": self.update_types or [],
             "additional_updates": self.additional_updates or "",
             "volunteer_choices": self.volunteer_choices or [],

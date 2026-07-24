@@ -442,6 +442,32 @@ textarea:focus {
   outline: none;
 }
 
+.geneva-degree-row {
+    display: grid;
+    grid-template-columns: auto 160px;
+    align-items: center;
+    column-gap: 0.5rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+.geneva-degree-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.25rem;
+}
+
+.geneva-degree-year .form-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    margin-bottom: 0;
+}
+
+.grad-year-wrapper {
+  display: inline;
+}
+
 /* --------------------------------------------------
    Responsive
 -------------------------------------------------- */

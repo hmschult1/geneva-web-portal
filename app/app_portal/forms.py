@@ -12,22 +12,39 @@ from wtforms.widgets import ListWidget, CheckboxInput
 from flask_wtf.file import FileField, FileAllowed
 
 
-def get_degree_type_choices():
-    try:
-        query = db.text("SELECT DISTINCT degree_level FROM alumni_geneva_educations")
-        rows = db.session.execute(query).fetchall()
-        choices = [(row[0], row[0]) for row in rows if row and row[0]]
-        return choices
-    except Exception:
-        return []
+GENEVA_DEGREE_CHOICES = [
+    ("Undergraduate", "Undergraduate"),
+    ("Graduate", "Graduate"),
+    ("Online Degree", "Online Degree"),
+]
 
 class EditClassNoteEntryForm(FlaskForm):
     # Contact / personal
     first_name = StringField('First Name', validators=[DataRequired()])
     last_name = StringField('Last Name', validators=[DataRequired()])
     maiden_name = StringField('Maiden Name', validators=[Optional()])
-    grad_year = StringField('Geneva Grad Year', validators=[DataRequired()])
-    grad_degree_type = SelectField('Geneva Degree Type', choices=get_degree_type_choices, validators=[Optional()])
+    geneva_degrees = SelectMultipleField(
+        "Geneva Degree(s)",
+        choices=GENEVA_DEGREE_CHOICES,
+        option_widget=CheckboxInput(),
+        widget=ListWidget(prefix_label=False),
+        validators=[Optional()],
+    )
+
+    undergrad_year = StringField(
+        "Undergraduate Graduation Year",
+        validators=[Optional()],
+    )
+
+    graduate_year = StringField(
+        "Graduate Graduation Year",
+        validators=[Optional()],
+    )
+
+    online_year = StringField(
+        "Online Graduation Year",
+        validators=[Optional()],
+    )
     
     # Class note
     nameplate = StringField('Nameplate', validators=[Optional()])
@@ -45,8 +62,28 @@ class EditAlumniUpdateEntryForm(FlaskForm):
     email = StringField('Email Address', validators=[Optional(), Email()])
     phone = TelField('Phone Number', validators=[Optional()])
     phone_type = SelectField('Phone Type', choices=[('mobile', 'Mobile'), ('home', 'Home')], validators=[Optional()])
-    grad_year = StringField('Geneva Grad Year', validators=[DataRequired()])
-    grad_degree_type = SelectField('Geneva Degree Type', choices=get_degree_type_choices, validators=[Optional()])
+    geneva_degrees = SelectMultipleField(
+            "Geneva Degree(s)",
+            choices=GENEVA_DEGREE_CHOICES,
+            option_widget=CheckboxInput(),
+            widget=ListWidget(prefix_label=False),
+            validators=[Optional()],
+        )
+    
+    undergrad_year = StringField(
+            "Undergraduate Graduation Year",
+            validators=[Optional()],
+        )
+    
+    graduate_year = StringField(
+            "Graduate Graduation Year",
+            validators=[Optional()],
+        )
+    
+    online_year = StringField(
+            "Online Graduation Year",
+            validators=[Optional()],
+        )
     update_types = SelectMultipleField(
         "What information would you like to share with the College?",
         choices=[
@@ -73,8 +110,27 @@ class EditAlumniUpdateEntryForm(FlaskForm):
     # Family
     marital_status = StringField('Marital Status', validators=[Optional()])
     spouse_name = StringField("Spouse's Name", validators=[Optional()])
-    spouse_grad_year = StringField('Spouse Geneva Grad Year', validators=[Optional()])
-    spouse_degree_type = SelectField('Spouse Geneva Degree Type', choices=get_degree_type_choices, validators=[Optional()])
+    spouse_geneva_degrees = SelectMultipleField(
+            "Spouse's Geneva Degree(s)",
+            choices=GENEVA_DEGREE_CHOICES,
+            option_widget=CheckboxInput(),
+            widget=ListWidget(prefix_label=False),
+            validators=[Optional()],
+        )
+    spouse_undergrad_year = StringField(
+            "Undergraduate Graduation Year",
+            validators=[Optional()],
+        )
+    
+    spouse_graduate_year = StringField(
+            "Graduate Graduation Year",
+            validators=[Optional()],
+        )
+    
+    spouse_online_year = StringField(
+            "Online Graduation Year",
+            validators=[Optional()],
+        )
     marry_date = DateField('Marriage Date', validators=[Optional()])
 
     # Children

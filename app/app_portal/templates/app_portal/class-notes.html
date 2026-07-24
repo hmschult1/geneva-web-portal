@@ -72,13 +72,58 @@
             <strong>{{ form.last_name.label }}</strong>
             {{ form.last_name(id="last_name", class="form-control") }}
           </div>
-          <div class="mb-3">
-            <strong>{{ form.grad_degree_type.label }}</strong>
-            {{ form.grad_degree_type(id="grad_degree_type", class="form-select") }}
-          </div>
-          <div class="mb-3">
-            <strong>{{ form.grad_year.label }}</strong>
-            {{ form.grad_year(id="grad_year", class="form-control") }}
+          <div class="mb-3 geneva-degree-container">
+            <strong>{{ form.geneva_degrees.label }}</strong>
+
+            {% for option in form.geneva_degrees %}
+            {% set degree_value = option._value() %}
+
+            <div class="geneva-degree-row mb-2">
+              <div class="geneva-degree-option">
+                {{ option(
+                class="form-check-input edit-geneva-degree",
+                id="edit-" ~ option.id
+                ) }}
+
+                <label class="form-check-label ms-2" for="edit-{{ option.id }}">
+                  {{ option.label.text }}
+                </label>
+              </div>
+
+              <div class="geneva-degree-year mt-2">
+
+                {% if degree_value == "Undergraduate" %}
+                <div id="edit-undergrad-wrapper" style="display:none;">
+                  {{ form.undergrad_year(
+                  id="edit-undergrad-year",
+                  class="form-control",
+                  placeholder="Graduation Year"
+                  ) }}
+                </div>
+
+                {% elif degree_value == "Graduate" %}
+                <div id="edit-graduate-wrapper" style="display:none;">
+                  {{ form.graduate_year(
+                  id="edit-graduate-year",
+                  class="form-control",
+                  placeholder="Graduation Year"
+                  ) }}
+                </div>
+
+                {% elif degree_value == "Online Degree" %}
+                <div id="edit-online-wrapper" style="display:none;">
+                  {{ form.online_year(
+                  id="edit-online-year",
+                  class="form-control",
+                  placeholder="Graduation Year"
+                  ) }}
+                </div>
+
+                {% endif %}
+
+              </div>
+            </div>
+            {% endfor %}
           </div>
           <div class="mb-3">
             <strong>{{ form.nameplate.label }}</strong>
@@ -109,10 +154,111 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function () {
+    const editModal = document.getElementById('editModal');
+    const editForm = document.getElementById('editForm');
+
+    if (!editModal || !editForm) {
+      console.error('The edit modal or edit form could not be found.');
+      return;
+    }
+
+    const degreeMappings = [
+      {
+        value: 'Undergraduate',
+        wrapperId: 'edit-undergrad-wrapper',
+        inputId: 'edit-undergrad-year',
+        payloadKey: 'undergrad_year'
+      },
+      {
+        value: 'Graduate',
+        wrapperId: 'edit-graduate-wrapper',
+        inputId: 'edit-graduate-year',
+        payloadKey: 'graduate_year'
+      },
+      {
+        value: 'Online Degree',
+        wrapperId: 'edit-online-wrapper',
+        inputId: 'edit-online-year',
+        payloadKey: 'online_year'
+      }
+    ];
+
+    function toggleGenevaDegreeFields() {
+      degreeMappings.forEach(mapping => {
+        const checkbox = editModal.querySelector(
+          `input[name="geneva_degrees"][value="${mapping.value}"]`
+        );
+
+        const wrapper = document.getElementById(mapping.wrapperId);
+        const yearInput = document.getElementById(mapping.inputId);
+
+        if (!checkbox || !wrapper) {
+          return;
+        }
+
+        wrapper.hidden = !checkbox.checked;
+        wrapper.style.display = checkbox.checked ? '' : 'none';
+
+        if (yearInput) {
+          yearInput.disabled = !checkbox.checked;
+
+          /*
+           * Clear the year when a degree is unchecked.
+           * This prevents a deleted education record's year
+           * from being submitted accidentally.
+           */
+          if (!checkbox.checked) {
+            yearInput.value = '';
+          }
+        }
+      });
+    }
+
+    function populateGenevaEducationFields(payload) {
+      const selectedDegrees = Array.isArray(payload.geneva_degrees)
+        ? payload.geneva_degrees
+        : [];
+
+      editModal
+        .querySelectorAll('input[name="geneva_degrees"]')
+        .forEach(checkbox => {
+          checkbox.checked = selectedDegrees.includes(checkbox.value);
+        });
+
+      degreeMappings.forEach(mapping => {
+        const yearInput = document.getElementById(mapping.inputId);
+
+        if (yearInput) {
+          yearInput.value = payload[mapping.payloadKey] || '';
+        }
+      });
+
+      toggleGenevaDegreeFields();
+    }
+
+    /*
+     * Show or hide the corresponding graduation-year field
+     * whenever a Geneva degree checkbox changes.
+     */
+    editModal
+      .querySelectorAll('input[name="geneva_degrees"]')
+      .forEach(checkbox => {
+        checkbox.addEventListener('change', toggleGenevaDegreeFields);
+      });
+
     document.querySelectorAll('.edit-link').forEach(link => {
       link.addEventListener('click', function (event) {
         event.preventDefault();
-        const payload = JSON.parse(this.dataset.payload || '{}');
+
+        let payload = {};
+
+        try {
+          payload = JSON.parse(this.dataset.payload || '{}');
+        } catch (error) {
+          console.error('The edit payload contains invalid JSON.', error);
+          return;
+        }
+
         const editUrl = this.dataset.editUrl;
 
         if (!editUrl) {
@@ -120,41 +266,97 @@
           return;
         }
 
-        // Send the form to:
-        // /class-notes/<note_id>/edit
         editForm.action = editUrl;
 
-        document.getElementById('first_name').value = payload.first_name || '';
-        document.getElementById('last_name').value = payload.last_name || '';
-        document.getElementById('nameplate').value = payload.nameplate || '';
-        document.getElementById('grad_year').value = payload.grad_year || '';
-        document.getElementById('grad_degree_type').value = payload.grad_degree_type || '';
-        document.getElementById('class_note_text').value = payload.class_note_text || '';
-        document.getElementById('existing_image').value = payload.existing_image || '';
-        document.getElementById('edit_id').value = payload.id || '';
-        // document.getElementById('editForm').action = `/app_portal/class-notes/${payload.id}/edit`;
-
-        const imageFilename = payload.image_filename || '';
-        const previewWrapper = document.getElementById('image_preview_wrapper');
-        const previewImg = document.getElementById('image_preview');
+        const firstName = document.getElementById('first_name');
+        const lastName = document.getElementById('last_name');
+        const nameplate = document.getElementById('nameplate');
+        const classNoteText = document.getElementById('class_note_text');
         const existingImageInput = document.getElementById('existing_image');
-        const filenameDisplay = document.getElementById('image_filename_display');
+        const editId = document.getElementById('edit_id');
 
-        if (imageFilename && previewWrapper && previewImg && existingImageInput) {
-          previewImg.src = `/static/uploads/${imageFilename}`;
-          previewWrapper.style.display = 'block';
-          existingImageInput.value = imageFilename;
-          if (filenameDisplay) filenameDisplay.textContent = `Filename: ${imageFilename}`;
-        } else {
-          previewImg.src = '';
-          previewWrapper.style.display = 'none';
-          existingImageInput.value = '';
-          if (filenameDisplay) filenameDisplay.textContent = '';
+        if (firstName) {
+          firstName.value = payload.first_name || '';
         }
 
-        new bootstrap.Modal(document.getElementById('editModal')).show();
+        if (lastName) {
+          lastName.value = payload.last_name || '';
+        }
+
+        if (nameplate) {
+          nameplate.value = payload.nameplate || '';
+        }
+
+        if (classNoteText) {
+          classNoteText.value = payload.class_note_text || '';
+        }
+
+        if (editId) {
+          editId.value = payload.id || '';
+        }
+
+        /*
+         * Populate all Geneva education checkboxes and years.
+         *
+         * Expected payload fields:
+         * - geneva_degrees
+         * - undergrad_year
+         * - graduate_year
+         * - online_year
+         */
+        populateGenevaEducationFields(payload);
+
+        const imageFilename = payload.image_filename || '';
+        const previewWrapper = document.getElementById(
+          'image_preview_wrapper'
+        );
+        const previewImg = document.getElementById('image_preview');
+        const filenameDisplay = document.getElementById(
+          'image_filename_display'
+        );
+
+        if (
+          imageFilename &&
+          previewWrapper &&
+          previewImg &&
+          existingImageInput
+        ) {
+          previewImg.src = `/static/uploads/${encodeURIComponent(
+            imageFilename
+          )}`;
+
+          previewWrapper.style.display = 'block';
+          existingImageInput.value = imageFilename;
+
+          if (filenameDisplay) {
+            filenameDisplay.textContent = `Filename: ${imageFilename}`;
+          }
+        } else {
+          if (previewImg) {
+            previewImg.src = '';
+          }
+
+          if (previewWrapper) {
+            previewWrapper.style.display = 'none';
+          }
+
+          if (existingImageInput) {
+            existingImageInput.value = '';
+          }
+
+          if (filenameDisplay) {
+            filenameDisplay.textContent = '';
+          }
+        }
+
+        bootstrap.Modal.getOrCreateInstance(editModal).show();
       });
     });
+
+    /*
+     * Establish the correct initial state before a modal is opened.
+     */
+    toggleGenevaDegreeFields();
   });
 </script>
 {% endblock %}
